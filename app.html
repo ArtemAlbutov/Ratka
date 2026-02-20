@@ -162,7 +162,6 @@
             border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
             cursor: pointer;
             transition: background 0.2s;
-            font-size: 13px;
         }
 
         .file-item:hover {
@@ -187,14 +186,14 @@
 
         .file-size {
             color: var(--tg-theme-hint-color, #666);
-            font-size: 11px;
+            font-size: 12px;
             margin-right: 10px;
             white-space: nowrap;
         }
 
         .file-date {
             color: var(--tg-theme-hint-color, #666);
-            font-size: 11px;
+            font-size: 12px;
             white-space: nowrap;
         }
 
@@ -248,11 +247,6 @@
         .status.error {
             background: #f8d7da;
             color: #721c24;
-        }
-
-        .status.warning {
-            background: #fff3cd;
-            color: #856404;
         }
 
         .path-bar {
@@ -471,35 +465,11 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
+        tg.disableVerticalSwipes(); // Запрещаем свайпы
+        tg.enableClosingConfirmation(); // Спрашиваем подтверждение
 
         let currentDir = 'C:\\';
         
-        // ==================== ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОТВЕТОВ ====================
-        window.pendingRequests = {};
-
-        // Слушаем ответы от бота
-        tg.onEvent('web_app_data', function(data) {
-            console.log('📩 Получен ответ:', data);
-            
-            try {
-                const response = JSON.parse(data);
-                console.log('📦 Распарсенный ответ:', response);
-                
-                if (response.requestId && window.pendingRequests[response.requestId]) {
-                    if (response.error) {
-                        window.pendingRequests[response.requestId].reject(new Error(response.error));
-                        showStatus('❌ ' + response.error, 'error');
-                    } else {
-                        window.pendingRequests[response.requestId].resolve(response.data);
-                        showStatus('✅ Данные получены', 'success');
-                    }
-                    delete window.pendingRequests[response.requestId];
-                }
-            } catch (e) {
-                console.error('Ошибка парсинга:', e);
-            }
-        });
-
         // ==================== ОТПРАВКА ЗАПРОСА ====================
         async function sendRequest(action, data = {}) {
             return new Promise((resolve, reject) => {
@@ -513,65 +483,93 @@
                 showStatus('⏳ Отправка запроса...', 'warning');
                 console.log('📤 Отправка запроса:', action, data);
                 
+                // Сохраняем callback
+                window.pendingRequests = window.pendingRequests || {};
                 window.pendingRequests[requestId] = { resolve, reject };
+                
+                // Отправляем
                 tg.sendData(message);
                 
+                // Таймаут
                 setTimeout(() => {
                     if (window.pendingRequests[requestId]) {
                         delete window.pendingRequests[requestId];
-                        reject(new Error('Таймаут запроса'));
-                        showStatus('❌ Таймаут запроса', 'error');
+                        reject(new Error('Таймаут'));
+                        showStatus('❌ Таймаут', 'error');
                     }
                 }, 10000);
             });
         }
 
-        // ==================== УПРАВЛЕНИЕ ВКЛАДКАМИ ====================
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        // ==================== ОБРАБОТКА ОТВЕТОВ ====================
+        tg.onEvent('web_app_data', function(data) {
+            console.log('📩 Получен ответ:', data);
             
-            event.target.classList.add('active');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+            try {
+                const response = JSON.parse(data);
+                console.log('📦 Распарсено:', response);
+                
+                // Проверяем есть ли ожидающий запрос
+                if (response.requestId && window.pendingRequests?.[response.requestId]) {
+                    if (response.error) {
+                        window.pendingRequests[response.requestId].reject(new Error(response.error));
+                        showStatus('❌ ' + response.error, 'error');
+                    } else {
+                        window.pendingRequests[response.requestId].resolve(response.data);
+                        showStatus('✅ Данные получены', 'success');
+                    }
+                    delete window.pendingRequests[response.requestId];
+                } else if (response.data?.files) {
+                    // Это список файлов
+                    displayFileList(response.data);
+                }
+            } catch (e) {
+                console.error('Ошибка парсинга:', e);
+            }
+        });
+
+        // ==================== ОТОБРАЖЕНИЕ ФАЙЛОВ ====================
+        function displayFileList(data) {
+            console.log('📁 Отображаем файлы:', data);
+            
+            if (data.current_dir) {
+                currentDir = data.current_dir;
+                document.getElementById('currentPath').textContent = currentDir;
+            }
+            
+            if (data.files && Array.isArray(data.files)) {
+                const fileList = document.getElementById('fileList');
+                let html = '';
+                
+                data.files.forEach(file => {
+                    const icon = file.is_dir ? '📁' : '📄';
+                    const size = file.size || '';
+                    const date = file.modified || '';
+                    const name = file.name || '?';
+                    
+                    html += `
+                        <div class="file-item" onclick="selectFile('${name.replace(/'/g, "\\'")}')">
+                            <span class="file-icon">${icon}</span>
+                            <span class="file-name">${name}</span>
+                            <span class="file-size">${size}</span>
+                            <span class="file-date">${date}</span>
+                        </div>
+                    `;
+                });
+                
+                fileList.innerHTML = html;
+                showStatus(`✅ Загружено ${data.files.length} элементов`, 'success');
+            }
         }
 
         // ==================== ФАЙЛЫ ====================
-        function formatFileList(files) {
-            if (!files || files.length === 0) {
-                return '<div class="file-item">📁 Папка пуста</div>';
-            }
-            
-            let html = '';
-            files.forEach(f => {
-                const icon = f.is_dir ? '📁' : '📄';
-                const safeName = f.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                html += `
-                    <div class="file-item" onclick="selectFile('${safeName}')">
-                        <span class="file-icon">${icon}</span>
-                        <span class="file-name">${f.name}</span>
-                        <span class="file-size">${f.size || ''}</span>
-                        <span class="file-date">${f.modified || ''}</span>
-                    </div>
-                `;
-            });
-            return html;
-        }
-
         async function loadFiles() {
             try {
-                console.log('📁 Загрузка файлов из:', currentDir);
                 const data = await sendRequest('list_files', { path: currentDir });
-                console.log('📁 Получены файлы:', data);
-                
                 if (data && data.files) {
-                    currentDir = data.current_dir;
-                    document.getElementById('currentPath').textContent = currentDir;
-                    document.getElementById('fileList').innerHTML = formatFileList(data.files);
-                    showStatus('✅ Файлы загружены', 'success');
+                    displayFileList(data);
                 }
             } catch (error) {
-                console.error('Ошибка загрузки файлов:', error);
-                document.getElementById('fileList').innerHTML = '<div class="file-item">❌ Ошибка: ' + error.message + '</div>';
                 showStatus('❌ ' + error.message, 'error');
             }
         }
@@ -580,9 +578,7 @@
             try {
                 const data = await sendRequest('go_back', { path: currentDir });
                 if (data && data.files) {
-                    currentDir = data.current_dir;
-                    document.getElementById('currentPath').textContent = currentDir;
-                    document.getElementById('fileList').innerHTML = formatFileList(data.files);
+                    displayFileList(data);
                 }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
@@ -596,9 +592,7 @@
             try {
                 const data = await sendRequest('change_dir', { current: currentDir, path: path });
                 if (data && data.files) {
-                    currentDir = data.current_dir;
-                    document.getElementById('currentPath').textContent = currentDir;
-                    document.getElementById('fileList').innerHTML = formatFileList(data.files);
+                    displayFileList(data);
                     document.getElementById('folderPath').value = '';
                 }
             } catch (error) {
@@ -623,20 +617,6 @@
         }
 
         // ==================== СИСТЕМА ====================
-        function formatSystemInfo(data) {
-            if (!data) return 'Нет данных';
-            return `
-🖥️ ОС: ${data.os || '?'} ${data.release || ''}
-💻 Компьютер: ${data.hostname || '?'}
-👤 Пользователь: ${data.username || '?'}
-⏱️ Запуск: ${data.boot_time || '?'}
-
-⚙️ Процессор: ${data.cpu_count || '?'} ядер, ${data.cpu_percent || '?'}%
-💾 ОЗУ: ${data.ram_used || '?'}/${data.ram_total || '?'} ГБ (${data.ram_percent || '?'}%)
-💿 Диск C: ${data.disk_used || '?'}/${data.disk_total || '?'} ГБ (${data.disk_percent || '?'}%)
-            `;
-        }
-
         async function loadSystemInfo() {
             try {
                 const data = await sendRequest('system_info');
@@ -857,6 +837,30 @@
             });
             tg.sendData(message);
             showStatus(`⚡ Команда ${cmd} отправлена`, 'warning');
+        }
+
+        // ==================== ФОРМАТТЕРЫ ====================
+        function formatSystemInfo(data) {
+            if (!data) return 'Нет данных';
+            return `
+🖥️ ОС: ${data.os || '?'} ${data.release || ''}
+💻 Компьютер: ${data.hostname || '?'}
+👤 Пользователь: ${data.username || '?'}
+⏱️ Запуск: ${data.boot_time || '?'}
+
+⚙️ Процессор: ${data.cpu_count || '?'} ядер, ${data.cpu_percent || '?'}%
+💾 ОЗУ: ${data.ram_used || '?'}/${data.ram_total || '?'} ГБ (${data.ram_percent || '?'}%)
+💿 Диск C: ${data.disk_used || '?'}/${data.disk_total || '?'} ГБ (${data.disk_percent || '?'}%)
+            `;
+        }
+
+        // ==================== УПРАВЛЕНИЕ ВКЛАДКАМИ ====================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
         }
 
         // ==================== СТАТУС ====================
