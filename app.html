@@ -162,6 +162,7 @@
             border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
             cursor: pointer;
             transition: background 0.2s;
+            font-size: 13px;
         }
 
         .file-item:hover {
@@ -186,14 +187,14 @@
 
         .file-size {
             color: var(--tg-theme-hint-color, #666);
-            font-size: 12px;
+            font-size: 11px;
             margin-right: 10px;
             white-space: nowrap;
         }
 
         .file-date {
             color: var(--tg-theme-hint-color, #666);
-            font-size: 12px;
+            font-size: 11px;
             white-space: nowrap;
         }
 
@@ -211,13 +212,13 @@
             display: flex;
             padding: 10px;
             border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
-            font-size: 13px;
+            font-size: 12px;
         }
 
-        .proc-pid { width: 70px; }
+        .proc-pid { width: 60px; }
         .proc-name { flex: 1; }
-        .proc-cpu { width: 80px; text-align: right; }
-        .proc-ram { width: 80px; text-align: right; }
+        .proc-cpu { width: 60px; text-align: right; }
+        .proc-ram { width: 60px; text-align: right; }
 
         .status {
             position: fixed;
@@ -260,7 +261,7 @@
             border-radius: 12px;
             margin-bottom: 12px;
             font-family: monospace;
-            font-size: 13px;
+            font-size: 12px;
             word-break: break-all;
         }
 
@@ -391,7 +392,7 @@
             </div>
 
             <div class="input-group">
-                <input type="text" id="folderPath" class="input" placeholder="Введите путь к папке (например: Windows/System32)">
+                <input type="text" id="folderPath" class="input" placeholder="Введите путь (например: Windows/System32)">
                 <button class="action-btn secondary" onclick="changeDir()" style="flex: 0; padding: 12px 20px;">Перейти</button>
             </div>
 
@@ -426,7 +427,7 @@
                 <button class="action-btn danger" onclick="killProcess()" style="flex: 0; padding: 12px 20px;">🔪 Убить</button>
             </div>
 
-            <div id="processList" style="border: 1px solid var(--tg-theme-hint-color, #ddd); border-radius: 12px; overflow: hidden;">
+            <div style="border: 1px solid var(--tg-theme-hint-color, #ddd); border-radius: 12px; overflow: hidden;">
                 <div class="proc-header">
                     <span class="proc-pid">PID</span>
                     <span class="proc-name">Имя</span>
@@ -567,12 +568,10 @@
                     document.getElementById('currentPath').textContent = currentDir;
                     document.getElementById('fileList').innerHTML = formatFileList(data.files);
                     showStatus('✅ Файлы загружены', 'success');
-                } else {
-                    document.getElementById('fileList').innerHTML = '<div class="file-item">❌ Ошибка загрузки</div>';
                 }
             } catch (error) {
                 console.error('Ошибка загрузки файлов:', error);
-                document.getElementById('fileList').innerHTML = '<div class="file-item">❌ ' + error.message + '</div>';
+                document.getElementById('fileList').innerHTML = '<div class="file-item">❌ Ошибка: ' + error.message + '</div>';
                 showStatus('❌ ' + error.message, 'error');
             }
         }
@@ -601,8 +600,6 @@
                     document.getElementById('currentPath').textContent = currentDir;
                     document.getElementById('fileList').innerHTML = formatFileList(data.files);
                     document.getElementById('folderPath').value = '';
-                } else if (data && data.error) {
-                    showStatus('❌ ' + data.error, 'error');
                 }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
@@ -620,7 +617,8 @@
         function downloadFile() {
             const name = document.getElementById('fileName').value;
             if (name) {
-                sendMedia('get', { path: currentDir + '\\' + name });
+                const fullPath = currentDir.endsWith('\\') ? currentDir + name : currentDir + '\\' + name;
+                sendMedia('get', { path: fullPath });
             }
         }
 
@@ -756,7 +754,7 @@
         async function loadClipboard() {
             try {
                 const data = await sendRequest('clipboard');
-                document.getElementById('extraInfo').innerHTML = `<pre>${data.text || 'Пусто'}</pre>`;
+                document.getElementById('extraInfo').innerHTML = data && data.text ? `<pre>${data.text}</pre>` : 'Пусто';
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -883,4 +881,4 @@
         setTimeout(loadFiles, 500);
     </script>
 </body>
-</html>...
+</html>
