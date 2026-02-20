@@ -1,129 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RAT Mini App</title>
+    <title>RAT Control</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #f5f5f5;
-            margin: 0;
-            padding: 16px;
-            color: #333;
-        }
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
         }
         button {
             background: #0088cc;
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 16px;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 18px;
             width: 100%;
-            margin-bottom: 8px;
+            margin: 5px 0;
             cursor: pointer;
         }
-        button.secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
         .status {
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            display: none;
-        }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>🤖 RAT CONTROL</h2>
-        <p>Компьютер: <span id="pc-name">загрузка...</span></p>
-        <p>Пользователь: <span id="username">загрузка...</span></p>
+    <h2>🤖 RAT CONTROL</h2>
+    
+    <button onclick="sendCommand('info')">📊 Информация о ПК</button>
+    <button onclick="sendCommand('screen')">📸 Скриншот</button>
+    <button onclick="sendCommand('ls')">📁 Список файлов</button>
+    
+    <div class="status" id="status">
+        Нажми кнопку для управления
     </div>
 
-    <div class="card">
-        <h3>📊 СИСТЕМА</h3>
-        <button onclick="sendCommand('info')">🖥️ Информация о ПК</button>
-        <button onclick="sendCommand('screen')">📸 Скриншот</button>
-        <button onclick="sendCommand('processes')">📋 Процессы</button>
-    </div>
-
-    <div class="card">
-        <h3>📁 ФАЙЛЫ</h3>
-        <button onclick="sendCommand('ls')">📂 Список файлов</button>
-        <div style="display: flex; gap: 8px;">
-            <input type="text" id="filePath" placeholder="путь к файлу" style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #ddd;">
-            <button onclick="downloadFile()" class="secondary">📥 Скачать</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <h3>⚡ УПРАВЛЕНИЕ</h3>
-        <button onclick="sendCommand('shutdown')" style="background: #dc3545;">⏻ Выключить</button>
-        <button onclick="sendCommand('restart')" style="background: #ffc107; color: #333;">🔄 Перезагрузить</button>
-    </div>
-
-    <div id="status" class="status"></div>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand(); // Разворачиваем на весь экран
         
-        // Показываем данные пользователя
-        document.getElementById('pc-name').textContent = 'загрузка...';
-        document.getElementById('username').textContent = tg.initDataUnsafe?.user?.username || 'Unknown';
-
-        // Функция отправки команды боту
-        function sendCommand(cmd, param = '') {
-            const statusDiv = document.getElementById('status');
-            statusDiv.className = 'status';
-            statusDiv.style.display = 'block';
-            statusDiv.textContent = '⏳ Отправка...';
+        function sendCommand(cmd) {
+            // Показываем статус
+            document.getElementById('status').innerHTML = '⏳ Отправка команды...';
+            document.getElementById('status').style.color = '#ff9900';
             
-            const fullCmd = param ? `${cmd} ${param}` : cmd;
-            
-            tg.sendData(JSON.stringify({
-                command: fullCmd
-            }));
+            // Отправляем команду боту
+            tg.sendData(cmd);
         }
-
-        // Скачать файл
-        function downloadFile() {
-            const path = document.getElementById('filePath').value;
-            if (path) {
-                sendCommand('get', path);
-            } else {
-                alert('Введите путь к файлу');
-            }
-        }
-
-        // Обработка ответа от бота
-        tg.onEvent('mainButtonClicked', function() {
-            tg.close();
-        });
-
-        // Если бот отправляет ответ, показываем
-        tg.onEvent('popupOpened', function() {
-            console.log('popup');
-        });
+        
+        // Закрываем приложение по кнопке
+        tg.MainButton.setText('ЗАКРЫТЬ');
+        tg.MainButton.onClick(() => tg.close());
+        tg.MainButton.show();
     </script>
 </body>
 </html>
