@@ -6,7 +6,6 @@
     <meta charset="UTF-8">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Стили остаются без изменений */
         * {
             margin: 0;
             padding: 0;
@@ -150,12 +149,16 @@
 
         .file-list {
             margin-top: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--tg-theme-hint-color, #ddd);
+            border-radius: 12px;
         }
 
         .file-item {
             display: flex;
             align-items: center;
-            padding: 10px;
+            padding: 12px;
             border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
             cursor: pointer;
             transition: background 0.2s;
@@ -163,6 +166,10 @@
 
         .file-item:hover {
             background: var(--tg-theme-bg-color, #f0f0f0);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
         }
 
         .file-icon {
@@ -173,17 +180,21 @@
         .file-name {
             flex: 1;
             font-weight: 500;
+            margin-right: 10px;
+            word-break: break-word;
         }
 
         .file-size {
             color: var(--tg-theme-hint-color, #666);
             font-size: 12px;
             margin-right: 10px;
+            white-space: nowrap;
         }
 
         .file-date {
             color: var(--tg-theme-hint-color, #666);
             font-size: 12px;
+            white-space: nowrap;
         }
 
         .proc-header {
@@ -238,6 +249,11 @@
             color: #721c24;
         }
 
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
         .path-bar {
             background: var(--tg-theme-bg-color, #f0f0f0);
             padding: 12px;
@@ -248,19 +264,25 @@
             word-break: break-all;
         }
 
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #ddd;
-            border-top-color: var(--tg-theme-button-color, #0088cc);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--tg-theme-hint-color, #ddd);
+            background: var(--tg-theme-bg-color, white);
+            color: var(--tg-theme-text-color, #333);
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input:focus {
+            border-color: var(--tg-theme-button-color, #0088cc);
         }
 
         .bottom-bar {
@@ -291,22 +313,6 @@
         .bottom-bar span {
             color: var(--tg-theme-hint-color, #666);
             font-size: 13px;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 8px;
-            margin: 12px 0;
-        }
-
-        .input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid var(--tg-theme-hint-color, #ddd);
-            background: var(--tg-theme-bg-color, white);
-            color: var(--tg-theme-text-color, #333);
-            font-size: 14px;
         }
     </style>
 </head>
@@ -385,7 +391,7 @@
             </div>
 
             <div class="input-group">
-                <input type="text" id="folderPath" class="input" placeholder="Введите путь к папке">
+                <input type="text" id="folderPath" class="input" placeholder="Введите путь к папке (например: Windows/System32)">
                 <button class="action-btn secondary" onclick="changeDir()" style="flex: 0; padding: 12px 20px;">Перейти</button>
             </div>
 
@@ -420,14 +426,14 @@
                 <button class="action-btn danger" onclick="killProcess()" style="flex: 0; padding: 12px 20px;">🔪 Убить</button>
             </div>
 
-            <div id="processList" class="output" style="padding: 0;">
+            <div id="processList" style="border: 1px solid var(--tg-theme-hint-color, #ddd); border-radius: 12px; overflow: hidden;">
                 <div class="proc-header">
                     <span class="proc-pid">PID</span>
                     <span class="proc-name">Имя</span>
                     <span class="proc-cpu">CPU %</span>
                     <span class="proc-ram">RAM %</span>
                 </div>
-                <div id="processesContent">
+                <div id="processesContent" style="max-height: 400px; overflow-y: auto;">
                     Нажмите кнопку для загрузки
                 </div>
             </div>
@@ -476,6 +482,7 @@
             
             try {
                 const response = JSON.parse(data);
+                console.log('📦 Распарсенный ответ:', response);
                 
                 if (response.requestId && window.pendingRequests[response.requestId]) {
                     if (response.error) {
@@ -503,14 +510,11 @@
                 });
                 
                 showStatus('⏳ Отправка запроса...', 'warning');
+                console.log('📤 Отправка запроса:', action, data);
                 
-                // Сохраняем promise
                 window.pendingRequests[requestId] = { resolve, reject };
-                
-                // Отправляем в Telegram
                 tg.sendData(message);
                 
-                // Таймаут 10 секунд
                 setTimeout(() => {
                     if (window.pendingRequests[requestId]) {
                         delete window.pendingRequests[requestId];
@@ -531,33 +535,44 @@
         }
 
         // ==================== ФАЙЛЫ ====================
+        function formatFileList(files) {
+            if (!files || files.length === 0) {
+                return '<div class="file-item">📁 Папка пуста</div>';
+            }
+            
+            let html = '';
+            files.forEach(f => {
+                const icon = f.is_dir ? '📁' : '📄';
+                const safeName = f.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                html += `
+                    <div class="file-item" onclick="selectFile('${safeName}')">
+                        <span class="file-icon">${icon}</span>
+                        <span class="file-name">${f.name}</span>
+                        <span class="file-size">${f.size || ''}</span>
+                        <span class="file-date">${f.modified || ''}</span>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
         async function loadFiles() {
             try {
+                console.log('📁 Загрузка файлов из:', currentDir);
                 const data = await sendRequest('list_files', { path: currentDir });
                 console.log('📁 Получены файлы:', data);
                 
                 if (data && data.files) {
                     currentDir = data.current_dir;
                     document.getElementById('currentPath').textContent = currentDir;
-                    
-                    let html = '';
-                    data.files.forEach(f => {
-                        const icon = f.is_dir ? '📁' : '📄';
-                        html += `
-                            <div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
-                                <span class="file-icon">${icon}</span>
-                                <span class="file-name">${f.name}</span>
-                                <span class="file-size">${f.size}</span>
-                                <span class="file-date">${f.modified}</span>
-                            </div>
-                        `;
-                    });
-                    
-                    document.getElementById('fileList').innerHTML = html;
+                    document.getElementById('fileList').innerHTML = formatFileList(data.files);
                     showStatus('✅ Файлы загружены', 'success');
+                } else {
+                    document.getElementById('fileList').innerHTML = '<div class="file-item">❌ Ошибка загрузки</div>';
                 }
             } catch (error) {
                 console.error('Ошибка загрузки файлов:', error);
+                document.getElementById('fileList').innerHTML = '<div class="file-item">❌ ' + error.message + '</div>';
                 showStatus('❌ ' + error.message, 'error');
             }
         }
@@ -586,6 +601,8 @@
                     document.getElementById('currentPath').textContent = currentDir;
                     document.getElementById('fileList').innerHTML = formatFileList(data.files);
                     document.getElementById('folderPath').value = '';
+                } else if (data && data.error) {
+                    showStatus('❌ ' + data.error, 'error');
                 }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
@@ -608,6 +625,20 @@
         }
 
         // ==================== СИСТЕМА ====================
+        function formatSystemInfo(data) {
+            if (!data) return 'Нет данных';
+            return `
+🖥️ ОС: ${data.os || '?'} ${data.release || ''}
+💻 Компьютер: ${data.hostname || '?'}
+👤 Пользователь: ${data.username || '?'}
+⏱️ Запуск: ${data.boot_time || '?'}
+
+⚙️ Процессор: ${data.cpu_count || '?'} ядер, ${data.cpu_percent || '?'}%
+💾 ОЗУ: ${data.ram_used || '?'}/${data.ram_total || '?'} ГБ (${data.ram_percent || '?'}%)
+💿 Диск C: ${data.disk_used || '?'}/${data.disk_total || '?'} ГБ (${data.disk_percent || '?'}%)
+            `;
+        }
+
         async function loadSystemInfo() {
             try {
                 const data = await sendRequest('system_info');
@@ -620,7 +651,14 @@
         async function loadCPU() {
             try {
                 const data = await sendRequest('cpu_info');
-                document.getElementById('systemInfo').innerHTML = formatCPUInfo(data);
+                let html = '⚙️ Процессор:\n\n';
+                if (data && data.cores) {
+                    data.cores.forEach((core, i) => {
+                        html += `Ядро ${i}: ${core}%\n`;
+                    });
+                    html += `\nЧастота: ${data.freq || '?'} МГц`;
+                }
+                document.getElementById('systemInfo').innerHTML = html;
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -629,7 +667,18 @@
         async function loadRAM() {
             try {
                 const data = await sendRequest('ram_info');
-                document.getElementById('systemInfo').innerHTML = formatRAMInfo(data);
+                if (data) {
+                    document.getElementById('systemInfo').innerHTML = `
+💾 Память:
+Всего: ${data.total || '?'}
+Использовано: ${data.used || '?'} (${data.percent || '?'}%)
+Доступно: ${data.available || '?'}
+
+🔄 Swap:
+Всего: ${data.swap_total || '?'}
+Использовано: ${data.swap_used || '?'}
+                    `;
+                }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -637,8 +686,17 @@
 
         async function loadDisk() {
             try {
-                const data = await sendRequest('disk_info');
-                document.getElementById('systemInfo').innerHTML = formatDiskInfo(data);
+                const disks = await sendRequest('disk_info');
+                if (disks && disks.length > 0) {
+                    let html = '💿 Диски:\n\n';
+                    disks.forEach(disk => {
+                        html += `${disk.device || '?'} (${disk.mount || '?'})\n`;
+                        html += `  Всего: ${disk.total || '?'}\n`;
+                        html += `  Использовано: ${disk.used || '?'} (${disk.percent || '?'}%)\n`;
+                        html += `  Свободно: ${disk.free || '?'}\n\n`;
+                    });
+                    document.getElementById('systemInfo').innerHTML = html;
+                }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -647,7 +705,18 @@
         async function loadNetwork() {
             try {
                 const data = await sendRequest('network_info');
-                document.getElementById('networkInfo').innerHTML = formatNetworkInfo(data);
+                if (data) {
+                    document.getElementById('networkInfo').innerHTML = `
+🌐 Сеть:
+Компьютер: ${data.hostname || '?'}
+Локальный IP: ${data.local_ip || '?'}
+Внешний IP: ${data.external_ip || '?'}
+
+📊 Трафик:
+Отправлено: ${data.bytes_sent || '?'}
+Получено: ${data.bytes_recv || '?'}
+                    `;
+                }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -655,8 +724,12 @@
 
         async function loadWiFi() {
             try {
-                const data = await sendRequest('wifi_info');
-                document.getElementById('networkInfo').innerHTML = formatWiFiInfo(data);
+                const wifiList = await sendRequest('wifi_info');
+                if (wifiList && wifiList.length > 0) {
+                    document.getElementById('networkInfo').innerHTML = '📶 Wi-Fi пароли:\n\n' + wifiList.join('\n');
+                } else {
+                    document.getElementById('networkInfo').innerHTML = '📶 Wi-Fi сети не найдены';
+                }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -664,8 +737,17 @@
 
         async function loadEnv() {
             try {
-                const data = await sendRequest('env_info');
-                document.getElementById('extraInfo').innerHTML = formatEnvInfo(data);
+                const env = await sendRequest('env_info');
+                if (env) {
+                    let html = '🌍 Переменные окружения:\n\n';
+                    let count = 0;
+                    for (let [key, value] of Object.entries(env)) {
+                        if (count++ < 30) {
+                            html += `${key}=${value}\n`;
+                        }
+                    }
+                    document.getElementById('extraInfo').innerHTML = html;
+                }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -674,7 +756,7 @@
         async function loadClipboard() {
             try {
                 const data = await sendRequest('clipboard');
-                document.getElementById('extraInfo').innerHTML = `<pre>${data.text}</pre>`;
+                document.getElementById('extraInfo').innerHTML = `<pre>${data.text || 'Пусто'}</pre>`;
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
@@ -683,13 +765,39 @@
         async function loadUser() {
             try {
                 const data = await sendRequest('user_info');
-                document.getElementById('extraInfo').innerHTML = formatUserInfo(data);
+                if (data) {
+                    document.getElementById('extraInfo').innerHTML = `
+👤 Пользователь: ${data.name || '?'}
+💻 Компьютер: ${data.computer || '?'}
+🏠 Домашняя папка: ${data.home || '?'}
+📁 Текущая папка: ${data.cwd || '?'}
+                    `;
+                }
             } catch (error) {
                 showStatus('❌ ' + error.message, 'error');
             }
         }
 
         // ==================== ПРОЦЕССЫ ====================
+        function formatProcessList(processes) {
+            if (!processes || processes.length === 0) {
+                return '<div class="proc-row">Нет процессов</div>';
+            }
+            
+            let html = '';
+            processes.forEach(p => {
+                html += `
+                    <div class="proc-row">
+                        <span class="proc-pid">${p.pid || '?'}</span>
+                        <span class="proc-name">${p.name || '?'}</span>
+                        <span class="proc-cpu">${p.cpu || '0'}%</span>
+                        <span class="proc-ram">${p.ram || '0'}%</span>
+                    </div>
+                `;
+            });
+            return html;
+        }
+
         async function loadProcesses() {
             try {
                 const data = await sendRequest('processes');
@@ -753,122 +861,6 @@
             showStatus(`⚡ Команда ${cmd} отправлена`, 'warning');
         }
 
-        // ==================== ФОРМАТТЕРЫ ====================
-        function formatFileList(files) {
-            let html = '';
-            files.forEach(f => {
-                const icon = f.is_dir ? '📁' : '📄';
-                html += `
-                    <div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
-                        <span class="file-icon">${icon}</span>
-                        <span class="file-name">${f.name}</span>
-                        <span class="file-size">${f.size}</span>
-                        <span class="file-date">${f.modified}</span>
-                    </div>
-                `;
-            });
-            return html;
-        }
-
-        function formatSystemInfo(data) {
-            return `
-🖥️ ОС: ${data.os} ${data.release}
-💻 Компьютер: ${data.hostname}
-👤 Пользователь: ${data.username}
-⏱️ Запуск: ${data.boot_time}
-
-⚙️ Процессор: ${data.cpu_count} ядер, ${data.cpu_percent}%
-💾 ОЗУ: ${data.ram_used}/${data.ram_total} ГБ (${data.ram_percent}%)
-💿 Диск C: ${data.disk_used}/${data.disk_total} ГБ (${data.disk_percent}%)
-            `;
-        }
-
-        function formatCPUInfo(data) {
-            let html = '⚙️ Процессор:\n\n';
-            data.cores.forEach((core, i) => {
-                html += `Ядро ${i}: ${core}%\n`;
-            });
-            html += `\nЧастота: ${data.freq} МГц`;
-            return html;
-        }
-
-        function formatRAMInfo(data) {
-            return `
-💾 Память:
-Всего: ${data.total}
-Использовано: ${data.used} (${data.percent}%)
-Доступно: ${data.available}
-
-🔄 Swap:
-Всего: ${data.swap_total}
-Использовано: ${data.swap_used}
-            `;
-        }
-
-        function formatDiskInfo(disks) {
-            let html = '💿 Диски:\n\n';
-            disks.forEach(disk => {
-                html += `${disk.device} (${disk.mount})\n`;
-                html += `  Всего: ${disk.total}\n`;
-                html += `  Использовано: ${disk.used} (${disk.percent}%)\n`;
-                html += `  Свободно: ${disk.free}\n\n`;
-            });
-            return html;
-        }
-
-        function formatNetworkInfo(data) {
-            return `
-🌐 Сеть:
-Компьютер: ${data.hostname}
-Локальный IP: ${data.local_ip}
-Внешний IP: ${data.external_ip}
-
-📊 Трафик:
-Отправлено: ${data.bytes_sent}
-Получено: ${data.bytes_recv}
-            `;
-        }
-
-        function formatWiFiInfo(wifiList) {
-            if (wifiList.length === 0) return '📶 Wi-Fi сети не найдены';
-            return '📶 Wi-Fi пароли:\n\n' + wifiList.join('\n');
-        }
-
-        function formatEnvInfo(env) {
-            let html = '🌍 Переменные окружения:\n\n';
-            let count = 0;
-            for (let [key, value] of Object.entries(env)) {
-                if (count++ < 30) {
-                    html += `${key}=${value}\n`;
-                }
-            }
-            return html;
-        }
-
-        function formatUserInfo(data) {
-            return `
-👤 Пользователь: ${data.name}
-💻 Компьютер: ${data.computer}
-🏠 Домашняя папка: ${data.home}
-📁 Текущая папка: ${data.cwd}
-            `;
-        }
-
-        function formatProcessList(processes) {
-            let html = '';
-            processes.forEach(p => {
-                html += `
-                    <div class="proc-row">
-                        <span class="proc-pid">${p.pid}</span>
-                        <span class="proc-name">${p.name}</span>
-                        <span class="proc-cpu">${p.cpu}%</span>
-                        <span class="proc-ram">${p.ram}%</span>
-                    </div>
-                `;
-            });
-            return html;
-        }
-
         // ==================== СТАТУС ====================
         function showStatus(text, type = 'info') {
             const status = document.getElementById('status');
@@ -891,4 +883,4 @@
         setTimeout(loadFiles, 500);
     </script>
 </body>
-</html>
+</html>...
