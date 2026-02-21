@@ -1,94 +1,245 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import psutil
-import platform
-import socket
-import getpass
-import datetime
-import subprocess
-import os
-
-app = Flask(__name__)
-CORS(app)  # Разрешаем запросы с сайта
-
-# Корневая страница для проверки
-@app.route('/')
-def index():
-    return "✅ RAT Control Server is running!"
-
-# API для получения информации
-@app.route('/api/info', methods=['GET'])
-def get_info():
-    cpu = psutil.cpu_percent()
-    mem = psutil.virtual_memory()
-    disk = psutil.disk_usage('C:\\')
-    boot = datetime.datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
-    
-    return jsonify({
-        'success': True,
-        'data': {
-            'computer': platform.node(),
-            'user': getpass.getuser(),
-            'os': f"{platform.system()} {platform.release()}",
-            'boot': boot,
-            'cpu': cpu,
-            'ram_used': mem.used // 1024**3,
-            'ram_total': mem.total // 1024**3,
-            'ram_percent': mem.percent,
-            'disk_used': disk.used // 1024**3,
-            'disk_total': disk.total // 1024**3,
-            'disk_percent': disk.percent,
-            'ip': socket.gethostbyname(socket.gethostname())
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAT Control</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
-    })
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .server-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 15px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #006699;
+            transform: translateY(-2px);
+        }
+        .output {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        .status {
+            background: #4caf50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 RAT CONTROL</h1>
+        
+        <div class="server-info" id="serverInfo">
+            🔌 Подключение к серверу: <span id="serverStatus">Проверка...</span>
+        </div>
+        
+        <div class="status" id="status">
+            ✅ Готов к работе
+        </div>
+        
+        <div class="button-grid">
+            <button onclick="sendCommand('info')">📊 Информация</button>
+            <button onclick="sendCommand('cpu')">⚙️ Процессор</button>
+            <button onclick="sendCommand('processes')">📋 Процессы</button>
+            <button onclick="takeScreenshot()">📸 Скриншот</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="customCommand" placeholder="Введите свою команду (например: dir)">
+            <button onclick="runCustomCommand()">Выполнить</button>
+        </div>
+        
+        <div id="output" class="output">
+            Здесь появится результат...
+        </div>
+        
+        <div class="note">
+            <strong>🔧 Настройка:</strong><br>
+            1. Запустите Python сервер на компьютере<br>
+            2. Введите IP адрес сервера ниже:<br>
+            <input type="text" id="serverIP" value="localhost" style="width: 100%; margin-top: 10px;">
+            <button onclick="updateServerIP()" style="margin-top: 10px;">Обновить</button>
+        </div>
+    </div>
 
-# API для выполнения команд
-@app.route('/api/command', methods=['POST'])
-def run_command():
-    data = request.json
-    cmd = data.get('command', '')
-    
-    if cmd == 'info':
-        return get_info()
-    
-    elif cmd == 'cpu':
-        cpu_percent = psutil.cpu_percent(percpu=True)
-        freq = psutil.cpu_freq()
-        return jsonify({
-            'success': True,
-            'data': {
-                'cores': cpu_percent,
-                'freq': freq.current if freq else 0
+    <script>
+        let serverIP = 'localhost';
+        let serverPort = '5000';
+
+        function updateServerIP() {
+            serverIP = document.getElementById('serverIP').value;
+            document.getElementById('serverStatus').innerHTML = `✅ Подключено к ${serverIP}:${serverPort}`;
+        }
+
+        async function sendCommand(cmd) {
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+            
+            status.innerHTML = '⏳ Отправка...';
+            status.style.background = '#ff9800';
+            output.innerHTML = '⏳ Выполнение команды...';
+            
+            try {
+                const response = await fetch(`http://${serverIP}:${serverPort}/api/command`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (cmd === 'info') {
+                        displayInfo(data.data);
+                    } else if (cmd === 'cpu') {
+                        displayCPU(data.data);
+                    } else if (cmd === 'processes') {
+                        displayProcesses(data.data);
+                    } else if (data.output) {
+                        output.innerHTML = data.output;
+                    }
+                    
+                    status.innerHTML = '✅ Готов';
+                    status.style.background = '#4caf50';
+                } else {
+                    output.innerHTML = '❌ Ошибка: ' + data.error;
+                    status.innerHTML = '❌ Ошибка';
+                    status.style.background = '#f44336';
+                }
+            } catch (e) {
+                output.innerHTML = '❌ Ошибка подключения: ' + e.message;
+                status.innerHTML = '❌ Нет соединения';
+                status.style.background = '#f44336';
             }
-        })
-    
-    elif cmd == 'processes':
-        processes = []
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent'])[:20]:
-            processes.append({
-                'pid': proc.info['pid'],
-                'name': proc.info['name'],
-                'cpu': proc.info['cpu_percent']
-            })
-        return jsonify({'success': True, 'data': processes})
-    
-    else:
-        # Выполняем системную команду
-        try:
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-            return jsonify({
-                'success': True,
-                'output': result.stdout + result.stderr
-            })
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)})
+        }
 
-if __name__ == '__main__':
-    print("="*60)
-    print("🚀 RAT CONTROL SERVER")
-    print("="*60)
-    print("✅ Сервер запущен!")
-    print(f"🌐 Локальный адрес: http://localhost:5000")
-    print(f"🌐 В сети адрес: http://{socket.gethostbyname(socket.gethostname())}:5000")
-    print("="*60)
-    app.run(host='0.0.0.0', port=5000, debug=True)
+        function displayInfo(data) {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+📊 ИНФОРМАЦИЯ О СИСТЕМЕ
+═══════════════════════
+💻 Компьютер: ${data.computer}
+👤 Пользователь: ${data.user}
+🖥️ ОС: ${data.os}
+⏱️ Запуск: ${data.boot}
+
+⚙️ Процессор: ${data.cpu}%
+💾 ОЗУ: ${data.ram_used}/${data.ram_total} ГБ (${data.ram_percent}%)
+💿 Диск C: ${data.disk_used}/${data.disk_total} ГБ (${data.disk_percent}%)
+🌐 IP: ${data.ip}
+            `;
+        }
+
+        function displayCPU(data) {
+            let html = '⚙️ ПРОЦЕССОР\n═══════════════\n\n';
+            data.cores.forEach((core, i) => {
+                html += `Ядро ${i}: ${core}%\n`;
+            });
+            html += `\n📊 Частота: ${data.freq} МГц`;
+            document.getElementById('output').innerHTML = html;
+        }
+
+        function displayProcesses(data) {
+            let html = '📋 ПРОЦЕССЫ\n═══════════════\n\n';
+            data.forEach(p => {
+                html += `📊 ${p.pid} | ${p.name} | CPU: ${p.cpu}%\n`;
+            });
+            document.getElementById('output').innerHTML = html;
+        }
+
+        function takeScreenshot() {
+            window.open(`http://${serverIP}:${serverPort}/screenshot`, '_blank');
+        }
+
+        function runCustomCommand() {
+            const cmd = document.getElementById('customCommand').value;
+            if (cmd) {
+                sendCommand(cmd);
+            }
+        }
+
+        // Проверка соединения
+        async function checkConnection() {
+            try {
+                const response = await fetch(`http://${serverIP}:${serverPort}/`);
+                if (response.ok) {
+                    document.getElementById('serverStatus').innerHTML = `✅ Подключено к ${serverIP}:${serverPort}`;
+                }
+            } catch (e) {
+                document.getElementById('serverStatus').innerHTML = `❌ Нет соединения`;
+            }
+        }
+
+        // Проверяем каждые 5 секунд
+        setInterval(checkConnection, 5000);
+        checkConnection();
+    </script>
+</body>
+</html>
