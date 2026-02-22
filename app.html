@@ -3,243 +3,156 @@
 <head>
     <title>RAT Control</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #f5f5f5);
+            color: var(--tg-theme-text-color, #333);
             padding: 20px;
+            margin: 0;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .server-info {
-            background: #e3f2fd;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-        .button-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin: 20px 0;
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        .card {
+            background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         button {
-            padding: 15px;
-            background: #0088cc;
-            color: white;
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, white);
             border: none;
             border-radius: 10px;
+            padding: 14px 20px;
             font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            margin-bottom: 8px;
             cursor: pointer;
-            transition: all 0.3s;
-        }
-        button:hover {
-            background: #006699;
-            transform: translateY(-2px);
         }
         .output {
-            background: #1a1a1a;
-            color: #00ff00;
-            padding: 20px;
+            background: var(--tg-theme-bg-color, #f0f0f0);
             border-radius: 10px;
+            padding: 16px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.6;
             white-space: pre-wrap;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
-            margin: 20px 0;
         }
         .status {
-            background: #4caf50;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 8px;
             text-align: center;
-            margin: 20px 0;
+            display: none;
         }
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        input {
-            flex: 1;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 16px;
-        }
-        .note {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
+        .status.success { background: #d4edda; color: #155724; display: block; }
+        .status.error { background: #f8d7da; color: #721c24; display: block; }
+        .status.warning { background: #fff3cd; color: #856404; display: block; }
+        .ip-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--tg-theme-hint-color, #ddd);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🤖 RAT CONTROL</h1>
-        
-        <div class="server-info" id="serverInfo">
-            🔌 Подключение к серверу: <span id="serverStatus">Проверка...</span>
-        </div>
-        
-        <div class="status" id="status">
-            ✅ Готов к работе
-        </div>
-        
-        <div class="button-grid">
-            <button onclick="sendCommand('info')">📊 Информация</button>
-            <button onclick="sendCommand('cpu')">⚙️ Процессор</button>
-            <button onclick="sendCommand('processes')">📋 Процессы</button>
-            <button onclick="takeScreenshot()">📸 Скриншот</button>
-        </div>
-        
-        <div class="input-group">
-            <input type="text" id="customCommand" placeholder="Введите свою команду (например: dir)">
-            <button onclick="runCustomCommand()">Выполнить</button>
-        </div>
-        
-        <div id="output" class="output">
-            Здесь появится результат...
-        </div>
-        
-        <div class="note">
-            <strong>🔧 Настройка:</strong><br>
-            1. Запустите Python сервер на компьютере<br>
-            2. Введите IP адрес сервера ниже:<br>
-            <input type="text" id="serverIP" value="localhost" style="width: 100%; margin-top: 10px;">
-            <button onclick="updateServerIP()" style="margin-top: 10px;">Обновить</button>
-        </div>
+    <h1>🤖 RAT CONTROL</h1>
+    <p>Управление компьютером</p>
+
+    <div class="card">
+        <h3>🔌 Подключение к серверу</h3>
+        <input type="text" id="serverIP" class="ip-input" placeholder="IP адрес компьютера" value="localhost">
+        <button onclick="testConnection()">🔄 Проверить соединение</button>
+        <div id="connectionStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+        <h3>📊 ИНФОРМАЦИЯ</h3>
+        <button onclick="sendCommand('info')">🔄 Обновить информацию</button>
+        <div id="infoOutput" class="output">Нажмите кнопку</div>
     </div>
 
     <script>
-        let serverIP = 'localhost';
-        let serverPort = '5000';
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Растягиваем на весь экран
 
-        function updateServerIP() {
+        let serverIP = 'localhost';
+        const port = 5000;
+
+        function getBaseUrl() {
+            return `http://${serverIP}:${port}`;
+        }
+
+        async function testConnection() {
             serverIP = document.getElementById('serverIP').value;
-            document.getElementById('serverStatus').innerHTML = `✅ Подключено к ${serverIP}:${serverPort}`;
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.className = 'status warning';
+            statusDiv.textContent = '⏳ Проверка...';
+
+            try {
+                const response = await fetch(getBaseUrl() + '/');
+                const text = await response.text();
+                if (text.includes('✅')) {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Подключено к серверу!';
+                } else {
+                    throw new Error('Неверный ответ');
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Ошибка: ' + error.message;
+            }
         }
 
         async function sendCommand(cmd) {
-            const status = document.getElementById('status');
-            const output = document.getElementById('output');
-            
-            status.innerHTML = '⏳ Отправка...';
-            status.style.background = '#ff9800';
-            output.innerHTML = '⏳ Выполнение команды...';
-            
-            try {
-                const response = await fetch(`http://${serverIP}:${serverPort}/api/command`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ command: cmd })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    if (cmd === 'info') {
-                        displayInfo(data.data);
-                    } else if (cmd === 'cpu') {
-                        displayCPU(data.data);
-                    } else if (cmd === 'processes') {
-                        displayProcesses(data.data);
-                    } else if (data.output) {
-                        output.innerHTML = data.output;
-                    }
-                    
-                    status.innerHTML = '✅ Готов';
-                    status.style.background = '#4caf50';
-                } else {
-                    output.innerHTML = '❌ Ошибка: ' + data.error;
-                    status.innerHTML = '❌ Ошибка';
-                    status.style.background = '#f44336';
-                }
-            } catch (e) {
-                output.innerHTML = '❌ Ошибка подключения: ' + e.message;
-                status.innerHTML = '❌ Нет соединения';
-                status.style.background = '#f44336';
-            }
-        }
+            serverIP = document.getElementById('serverIP').value;
+            const outputDiv = document.getElementById('infoOutput');
+            const statusDiv = document.getElementById('connectionStatus');
+            outputDiv.textContent = '⏳ Загрузка...';
 
-        function displayInfo(data) {
-            const output = document.getElementById('output');
-            output.innerHTML = `
+            try {
+                const response = await fetch(getBaseUrl() + '/api/info');
+                if (!response.ok) throw new Error('HTTP error ' + response.status);
+                const data = await response.json();
+
+                if (data.success) {
+                    const d = data.data;
+                    outputDiv.innerHTML = `
 📊 ИНФОРМАЦИЯ О СИСТЕМЕ
 ═══════════════════════
-💻 Компьютер: ${data.computer}
-👤 Пользователь: ${data.user}
-🖥️ ОС: ${data.os}
-⏱️ Запуск: ${data.boot}
+💻 Компьютер: ${d.computer}
+👤 Пользователь: ${d.user}
+🖥️ ОС: ${d.os}
+⏱️ Запуск: ${d.boot}
 
-⚙️ Процессор: ${data.cpu}%
-💾 ОЗУ: ${data.ram_used}/${data.ram_total} ГБ (${data.ram_percent}%)
-💿 Диск C: ${data.disk_used}/${data.disk_total} ГБ (${data.disk_percent}%)
-🌐 IP: ${data.ip}
-            `;
-        }
-
-        function displayCPU(data) {
-            let html = '⚙️ ПРОЦЕССОР\n═══════════════\n\n';
-            data.cores.forEach((core, i) => {
-                html += `Ядро ${i}: ${core}%\n`;
-            });
-            html += `\n📊 Частота: ${data.freq} МГц`;
-            document.getElementById('output').innerHTML = html;
-        }
-
-        function displayProcesses(data) {
-            let html = '📋 ПРОЦЕССЫ\n═══════════════\n\n';
-            data.forEach(p => {
-                html += `📊 ${p.pid} | ${p.name} | CPU: ${p.cpu}%\n`;
-            });
-            document.getElementById('output').innerHTML = html;
-        }
-
-        function takeScreenshot() {
-            window.open(`http://${serverIP}:${serverPort}/screenshot`, '_blank');
-        }
-
-        function runCustomCommand() {
-            const cmd = document.getElementById('customCommand').value;
-            if (cmd) {
-                sendCommand(cmd);
-            }
-        }
-
-        // Проверка соединения
-        async function checkConnection() {
-            try {
-                const response = await fetch(`http://${serverIP}:${serverPort}/`);
-                if (response.ok) {
-                    document.getElementById('serverStatus').innerHTML = `✅ Подключено к ${serverIP}:${serverPort}`;
+⚙️ Процессор: ${d.cpu}%
+💾 ОЗУ: ${d.ram_used}/${d.ram_total} ГБ (${d.ram_percent}%)
+💿 Диск C: ${d.disk_used}/${d.disk_total} ГБ (${d.disk_percent}%)
+🌐 IP: ${d.ip}
+                    `;
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Данные получены';
+                } else {
+                    throw new Error('Ошибка сервера');
                 }
-            } catch (e) {
-                document.getElementById('serverStatus').innerHTML = `❌ Нет соединения`;
+            } catch (error) {
+                outputDiv.textContent = '❌ Ошибка: ' + error.message;
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Нет соединения';
             }
         }
 
-        // Проверяем каждые 5 секунд
-        setInterval(checkConnection, 5000);
-        checkConnection();
+        // Пробуем подключиться при загрузке
+        setTimeout(testConnection, 500);
     </script>
 </body>
 </html>
