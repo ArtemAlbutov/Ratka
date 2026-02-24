@@ -594,12 +594,12 @@
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         function getBaseUrl() {
             // Убираем https:// если есть
-            let cleanAddress = serverAddress.replace('https://', '').replace('http://', '');
+            let cleanAddress = serverAddress.replace('http://', '').replace('https://', '');
             // Если нет порта, добавляем :5000
             if (!cleanAddress.includes(':')) {
                 cleanAddress = cleanAddress + ':5000';
             }
-            return `http://${cleanAddress}`;
+            return `https://${cleanAddress}`;
         }
 
         function showStatus(text, type = 'info') {
@@ -1244,3 +1244,4 @@
     </script>
 </body>
 </html>
+
