@@ -160,8 +160,8 @@
             background:white;
             padding:20px;
             border-radius:10px;
-            max-width:95%;
-            max-height:95%;
+            max-width:90%;
+            max-height:90%;
             overflow:auto;
             position:relative
         }
@@ -657,8 +657,10 @@
                         document.getElementById('networkOutput').innerHTML = formatWiFi(data.data);
                     } else if (cmd === 'processes') {
                         document.getElementById('processesOutput').innerHTML = formatProcesses(data.data);
-                    } else if (cmd === 'topcpu' || cmd === 'topram') {
-                        document.getElementById('processesOutput').innerHTML = formatProcesses(data.data);
+                    } else if (cmd === 'topcpu') {
+                        document.getElementById('processesOutput').innerHTML = formatTopCPU(data.data);
+                    } else if (cmd === 'topram') {
+                        document.getElementById('processesOutput').innerHTML = formatTopRAM(data.data);
                     } else if (cmd === 'memory' || cmd === 'ram') {
                         document.getElementById('systemDetailOutput').innerHTML = formatMemory(data.data);
                     } else if (cmd === 'disk') {
@@ -746,6 +748,20 @@
             if (!list || !list.length) return 'Нет процессов';
             return list.map(p => 
                 `📊 PID:${p.pid} | ${p.name} | CPU:${p.cpu}% | RAM:${p.ram}%`
+            ).join('\n');
+        }
+
+        function formatTopCPU(list) {
+            if (!list || !list.length) return 'Нет процессов';
+            return list.map(p => 
+                `⚡ PID:${p.pid} | ${p.name} | CPU:${p.cpu}%`
+            ).join('\n');
+        }
+
+        function formatTopRAM(list) {
+            if (!list || !list.length) return 'Нет процессов';
+            return list.map(p => 
+                `💾 PID:${p.pid} | ${p.name} | RAM:${p.ram}%`
             ).join('\n');
         }
 
@@ -948,6 +964,18 @@
             
             const modal = document.createElement('div');
             modal.className = 'modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.95);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+            `;
             
             const content = document.createElement('div');
             content.style.cssText = `
@@ -1031,6 +1059,18 @@
                 
                 const modal = document.createElement('div');
                 modal.className = 'modal';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0,0,0,0.95);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                `;
                 
                 const content = document.createElement('div');
                 content.style.cssText = `
@@ -1091,7 +1131,7 @@
                         data.screenshots.forEach(s => {
                             screenshotsHtml += `
                                 <div class="media-item" onclick="showImageInline('${s.url}')">
-                                    <img src="${s.url}" alt="screenshot" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22120%22%20height%3D%2290%22%3E%3Crect%20width%3D%22120%22%20height%3D%2290%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2210%22%20y%3D%2245%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%3E%3C%2Ftext%3E%3C%2Fsvg%3E'">
+                                    <img src="${s.url}" alt="screenshot">
                                     <div class="media-info">📸 ${s.time}</div>
                                 </div>
                             `;
@@ -1107,7 +1147,7 @@
                         data.webcam.forEach(w => {
                             webcamHtml += `
                                 <div class="media-item" onclick="showImageInline('${w.url}')">
-                                    <img src="${w.url}" alt="webcam" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22120%22%20height%3D%2290%22%3E%3Crect%20width%3D%22120%22%20height%3D%2290%22%20fill%3D%22%23eee%22%2F%3E%3Ctext%20x%3D%2210%22%20y%3D%2245%22%20font-family%3D%22Arial%22%20font-size%3D%2212%22%20fill%3D%22%23999%22%3E%3C%2Ftext%3E%3C%2Fsvg%3E'">
+                                    <img src="${w.url}" alt="webcam">
                                     <div class="media-info">📷 ${w.time}</div>
                                 </div>
                             `;
@@ -1165,7 +1205,6 @@
         // Инициализация
         setTimeout(() => {
             testConnection();
-            refreshMedia();
         }, 500);
         setInterval(testConnection, 30000);
     </script>
