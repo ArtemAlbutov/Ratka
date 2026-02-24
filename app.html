@@ -593,14 +593,15 @@
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         function getBaseUrl() {
-            // Убираем https:// если есть
-            let cleanAddress = serverAddress.replace('http://', '').replace('https://', '');
-            // Если нет порта, добавляем :5000
-            if (!cleanAddress.includes(':')) {
-                cleanAddress = cleanAddress + ':5000';
-            }
-            return `https://${cleanAddress}`;
-        }
+    // Исправлено: всегда используем HTTPS для запросов к туннелю
+    let cleanAddress = serverAddress.replace('https://', '').replace('http://', '');
+    // Если нет порта, добавляем :5000
+    if (!cleanAddress.includes(':')) {
+        cleanAddress = cleanAddress + ':5000';
+    }
+    // ВАЖНО: Используем HTTPS, а не HTTP!
+    return `https://${cleanAddress}`;
+}
 
         function showStatus(text, type = 'info') {
             console.log(`📢 Статус [${type}]: ${text}`);
@@ -1244,4 +1245,5 @@
     </script>
 </body>
 </html>
+
 
