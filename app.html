@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -66,7 +66,8 @@
             display:flex;
             gap:5px;
             margin-bottom:15px;
-            overflow-x:auto
+            overflow-x:auto;
+            padding:2px
         }
         .tab{
             flex:0 0 auto;
@@ -76,7 +77,8 @@
             font-size:12px;
             font-weight:500;
             box-shadow:0 2px 3px rgba(0,0,0,.05);
-            cursor:pointer
+            cursor:pointer;
+            white-space:nowrap
         }
         .tab.active{
             background:#0088cc;
@@ -279,19 +281,71 @@
             50%{opacity:0.6;transform:scale(1.2)}
             100%{opacity:1;transform:scale(1)}
         }
-        .section-title{
-            font-size:16px;
-            font-weight:600;
-            margin:15px 0 10px;
-            color:#666
+        
+        /* Стили для медиатеки */
+        .media-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
         }
-        .badge{
-            background:#e9ecef;
-            padding:2px 8px;
-            border-radius:12px;
-            font-size:10px;
-            color:#666;
-            margin-left:5px
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .media-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .media-item:hover {
+            transform: scale(1.05);
+        }
+        .media-item img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+        }
+        .media-item audio {
+            width: 100%;
+            height: 40px;
+            margin-top: 5px;
+        }
+        .media-info {
+            padding: 8px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            background: #fafafa;
+        }
+        .media-empty {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+            background: white;
+            border-radius: 8px;
+            grid-column: 1 / -1;
+        }
+        .badge {
+            background: #0088cc;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
         }
     </style>
 </head>
@@ -320,8 +374,8 @@
         <div class="tab" onclick="switchTab('system')">⚙️ Система</div>
         <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
         <div class="tab" onclick="switchTab('processes')">📋 Процессы</div>
+        <div class="tab" onclick="switchTab('media')">🎥 Медиатека</div>
         <div class="tab" onclick="switchTab('network')">🌐 Сеть</div>
-        <div class="tab" onclick="switchTab('media')">🎥 Медиа</div>
         <div class="tab" onclick="switchTab('power')">⚡ Питание</div>
     </div>
 
@@ -365,49 +419,36 @@
         <div class="card">
             <div class="card-title">📁 ФАЙЛОВЫЙ МЕНЕДЖЕР</div>
             
-            <!-- Быстрые пути -->
             <div class="quick-paths">
                 <span class="path-chip" onclick="quickPath('C:\\')">💽 C:\</span>
                 <span class="path-chip" onclick="quickPath('D:\\')">💽 D:\</span>
                 <span class="path-chip" onclick="quickPath('%USERPROFILE%')">👤 Домой</span>
                 <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Desktop')">🖥️ Рабочий стол</span>
                 <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Downloads')">📥 Загрузки</span>
-                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Documents')">📄 Документы</span>
-                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Music')">🎵 Музыка</span>
-                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Videos')">🎬 Видео</span>
-                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Pictures')">🖼️ Картинки</span>
-                <span class="path-chip" onclick="quickPath('C:\\Windows\\System32')">⚙️ System32</span>
-                <span class="path-chip" onclick="quickPath('%APPDATA%')">📂 AppData</span>
-                <span class="path-chip" onclick="quickPath('%TEMP%')">🗑️ Temp</span>
             </div>
 
-            <!-- Текущий путь -->
             <div style="display: flex; gap: 5px; margin: 8px 0;">
                 <div class="path-bar" id="currentPath" style="flex: 1; margin: 0;">C:\</div>
                 <button class="btn btn-info" onclick="copyPath()" style="width: auto; padding: 10px 15px;" title="Копировать путь">📋</button>
             </div>
             
-            <!-- Кнопки навигации -->
             <div class="grid-3">
                 <button class="btn btn-primary" onclick="listFiles()">📋 Список</button>
                 <button class="btn btn-warning" onclick="goBack()">⬆️ Назад</button>
                 <button class="btn btn-info" onclick="refreshFiles()">🔄 Обновить</button>
             </div>
 
-            <!-- Ручной ввод пути -->
             <div class="input-group">
                 <input type="text" id="folderPath" class="input" placeholder="Введите путь">
                 <button class="btn btn-primary" onclick="changeDir()">Перейти</button>
             </div>
 
-            <!-- Действия с файлами -->
             <div class="input-group">
                 <input type="text" id="fileName" class="input" placeholder="Имя файла">
                 <button class="btn btn-success" onclick="downloadFile()">📥 Скачать</button>
                 <button class="btn btn-danger" onclick="deleteFile()">🗑️ Удалить</button>
             </div>
 
-            <!-- Список файлов -->
             <div id="fileList" class="file-list"></div>
             <div id="fileStats" style="font-size: 11px; color: #666; margin-top: 5px; text-align: right;"></div>
         </div>
@@ -433,27 +474,59 @@
         </div>
     </div>
 
+    <!-- Медиатека -->
+    <div id="tab-media" class="tab-content">
+        <div class="card">
+            <div class="card-title">🎥 МЕДИАТЕКА</div>
+            
+            <div class="grid-3">
+                <button class="btn btn-primary" onclick="takeScreenshot()">📸 Скриншот</button>
+                <button class="btn btn-info" onclick="takeWebcamPhoto()">📷 Фото с вебки</button>
+                <button class="btn btn-success" onclick="startRecording()">🎤 Записать звук</button>
+            </div>
+            
+            <div class="media-section">
+                <div class="section-title">
+                    <span>📸 СКРИНШОТЫ</span>
+                    <span class="badge" id="screenshotsCount">0</span>
+                </div>
+                <div id="screenshotsList" class="media-grid">
+                    <div class="media-empty">Нет скриншотов</div>
+                </div>
+            </div>
+            
+            <div class="media-section">
+                <div class="section-title">
+                    <span>📷 ФОТО С ВЕБКИ</span>
+                    <span class="badge" id="webcamCount">0</span>
+                </div>
+                <div id="webcamList" class="media-grid">
+                    <div class="media-empty">Нет фото</div>
+                </div>
+            </div>
+            
+            <div class="media-section">
+                <div class="section-title">
+                    <span>🎤 АУДИОЗАПИСИ</span>
+                    <span class="badge" id="audioCount">0</span>
+                </div>
+                <div id="audioList" class="media-grid">
+                    <div class="media-empty">Нет записей</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Сеть -->
     <div id="tab-network" class="tab-content">
         <div class="card">
-            <div class="card-title">🌐 СЕТЕВАЯ ИНФОРМАЦИЯ</div>
+            <div class="card-title">🌐 СЕТЬ</div>
             <div class="grid-2">
                 <button class="btn btn-primary" onclick="sendCommand('network')">📡 Локальная</button>
                 <button class="btn btn-info" onclick="sendCommand('externalip')">🌍 Внешняя</button>
                 <button class="btn btn-success" onclick="sendCommand('wifi')">📶 Wi-Fi</button>
             </div>
             <div id="networkOutput" class="output"></div>
-        </div>
-    </div>
-
-    <!-- Медиа -->
-    <div id="tab-media" class="tab-content">
-        <div class="card">
-            <div class="card-title">🎥 ЗАХВАТ МЕДИА</div>
-            <div class="grid-2">
-                <button class="btn btn-primary" onclick="takeScreenshot()">📸 Скриншот</button>
-                <button class="btn btn-info" onclick="takeWebcamPhoto()">📷 Вебкамера</button>
-            </div>
         </div>
     </div>
 
@@ -478,10 +551,8 @@
         </div>
     </div>
 
-    <!-- Статус -->
     <div id="status" class="status"></div>
 
-    <!-- Нижняя панель -->
     <div class="bottom-bar">
         <span><span class="online-dot"></span> <span id="connectionText">Офлайн</span></span>
         <button onclick="window.Telegram.WebApp.close()">ЗАКРЫТЬ</button>
@@ -530,8 +601,7 @@
                 const res = await fetch(url, opts);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 
-                // Для скриншотов и фото возвращаем blob
-                if (endpoint.includes('screenshot') || endpoint.includes('webcam')) {
+                if (endpoint.includes('screenshot') || endpoint.includes('webcam') || endpoint.includes('record_audio')) {
                     return await res.blob();
                 }
                 
@@ -551,7 +621,6 @@
                 if (data && data.success) {
                     showStatus('✅ OK', 'success');
                     
-                    // Обновляем соответствующий output
                     if (cmd === 'system') {
                         document.getElementById('systemOutput').innerHTML = formatSystem(data.data);
                         document.getElementById('systemDetailOutput').innerHTML = formatSystem(data.data);
@@ -566,10 +635,12 @@
                         document.getElementById('processesOutput').innerHTML = formatProcesses(data.data);
                     } else if (cmd === 'topcpu' || cmd === 'topram') {
                         document.getElementById('processesOutput').innerHTML = formatProcesses(data.data);
-                    } else if (cmd === 'memory') {
+                    } else if (cmd === 'memory' || cmd === 'ram') {
                         document.getElementById('systemDetailOutput').innerHTML = formatMemory(data.data);
                     } else if (cmd === 'disk') {
-                        document.getElementById('systemDetailOutput').innerHTML = formatDisks(data.data);
+                        document.getElementById('systemDetailOutput').innerHTML = formatDisk(data.data);
+                    } else if (cmd === 'cpu') {
+                        document.getElementById('systemDetailOutput').innerHTML = formatCPU(data.data);
                     } else if (cmd === 'cmd') {
                         document.getElementById('cmdOutput').innerHTML = data.output || '✅ Команда выполнена';
                     }
@@ -612,20 +683,39 @@
 Всего: ${d.total}
 Использовано: ${d.used} (${d.percent}%)
 Доступно: ${d.available}
+Кешировано: ${d.cached}
+Буфер: ${d.buffers}
 
 🔄 SWAP:
 Всего: ${d.swap_total}
-Использовано: ${d.swap_used}`;
+Использовано: ${d.swap_used} (${d.swap_percent}%)`;
         }
 
-        function formatDisks(disks) {
-            if (!disks || !disks.length) return 'Нет дисков';
-            return disks.map(d => 
+        function formatDisk(d) {
+            if (!d || !d.length) return 'Нет дисков';
+            return d.map(d => 
                 `💿 ${d.device} (${d.mount})
+   Тип: ${d.fstype}
    Всего: ${d.total}
    Использовано: ${d.used} (${d.percent}%)
    Свободно: ${d.free}`
             ).join('\n\n');
+        }
+
+        function formatCPU(d) {
+            let result = `⚙️ ПРОЦЕССОР
+═══════════════════
+Ядер: ${d.cores_physical} физических / ${d.cores_logical} логических
+Частота: ${d.freq_current} МГц (макс: ${d.freq_max} МГц)
+Средняя загрузка: ${d.percent_avg.toFixed(1)}%
+
+📊 ПО ЯДРАМ:\n`;
+            
+            d.percent_per_core.forEach((core, i) => {
+                result += `Ядро ${i}: ${core.toFixed(1)}%\n`;
+            });
+            
+            return result;
         }
 
         function formatProcesses(list) {
@@ -828,7 +918,7 @@
             }
         }
 
-        // ==================== МЕДИА ====================
+        // ==================== МЕДИАТЕКА ====================
         async function takeScreenshot() {
             showStatus('📸 Скриншот...');
             try {
@@ -836,6 +926,7 @@
                 const url = URL.createObjectURL(blob);
                 showImageModal(url);
                 showStatus('✅ Скриншот готов', 'success');
+                setTimeout(() => refreshMedia(), 1000);
             } catch { 
                 showStatus('❌ Ошибка', 'error'); 
             }
@@ -848,8 +939,33 @@
                 const url = URL.createObjectURL(blob);
                 showImageModal(url);
                 showStatus('✅ Фото готово', 'success');
+                setTimeout(() => refreshMedia(), 1000);
             } catch { 
                 showStatus('❌ Ошибка', 'error'); 
+            }
+        }
+
+        async function startRecording() {
+            showStatus('⏳ Запись звука (5 сек)...', 'warning');
+            try {
+                const blob = await apiRequest('/api/record_audio');
+                const url = URL.createObjectURL(blob);
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 10px; max-width: 400px;">
+                        <h3 style="margin-bottom: 15px;">🎤 Запись готова</h3>
+                        <audio controls src="${url}" style="width: 100%; margin-bottom: 15px;"></audio>
+                        <button onclick="this.closest('.modal').remove()" class="btn btn-primary">Закрыть</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                showStatus('✅ Запись готова', 'success');
+                setTimeout(() => refreshMedia(), 1000);
+            } catch (error) {
+                showStatus('❌ Ошибка записи', 'error');
             }
         }
 
@@ -866,6 +982,63 @@
             modal.appendChild(close);
             modal.onclick = (e) => { if (e.target === modal) document.body.removeChild(modal); };
             document.body.appendChild(modal);
+        }
+
+        async function refreshMedia() {
+            try {
+                const data = await apiRequest('/api/media/list');
+                if (data && data.success) {
+                    document.getElementById('screenshotsCount').textContent = data.screenshots.length;
+                    let screenshotsHtml = '';
+                    if (data.screenshots.length > 0) {
+                        data.screenshots.forEach(s => {
+                            screenshotsHtml += `
+                                <div class="media-item" onclick="window.open('${s.url}', '_blank')">
+                                    <img src="${s.url}" alt="screenshot">
+                                    <div class="media-info">${s.time}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        screenshotsHtml = '<div class="media-empty">Нет скриншотов</div>';
+                    }
+                    document.getElementById('screenshotsList').innerHTML = screenshotsHtml;
+                    
+                    document.getElementById('webcamCount').textContent = data.webcam.length;
+                    let webcamHtml = '';
+                    if (data.webcam.length > 0) {
+                        data.webcam.forEach(w => {
+                            webcamHtml += `
+                                <div class="media-item" onclick="window.open('${w.url}', '_blank')">
+                                    <img src="${w.url}" alt="webcam">
+                                    <div class="media-info">${w.time}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        webcamHtml = '<div class="media-empty">Нет фото</div>';
+                    }
+                    document.getElementById('webcamList').innerHTML = webcamHtml;
+                    
+                    document.getElementById('audioCount').textContent = data.audio.length;
+                    let audioHtml = '';
+                    if (data.audio.length > 0) {
+                        data.audio.forEach(a => {
+                            audioHtml += `
+                                <div class="media-item">
+                                    <audio controls src="${a.url}"></audio>
+                                    <div class="media-info">${a.time}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        audioHtml = '<div class="media-empty">Нет записей</div>';
+                    }
+                    document.getElementById('audioList').innerHTML = audioHtml;
+                }
+            } catch (error) {
+                console.error('Ошибка обновления медиатеки:', error);
+            }
         }
 
         // ==================== КОМАНДЫ ====================
@@ -886,6 +1059,7 @@
             event.target.classList.add('active');
             document.getElementById(`tab-${tab}`).classList.add('active');
             
+            if (tab === 'media') refreshMedia();
             if (tab === 'files') listFiles();
             if (tab === 'processes') sendCommand('processes');
             if (tab === 'main') sendCommand('system');
