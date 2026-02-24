@@ -154,26 +154,32 @@
             display:flex;
             justify-content:center;
             align-items:center;
-            z-index:10000
+            z-index:10000;
+            padding:20px
         }
-        .modal img{
-            max-width:90%;
-            max-height:90%;
+        .modal-content{
+            background:white;
+            padding:20px;
             border-radius:10px;
-            box-shadow:0 0 30px rgba(0,0,0,.5)
+            max-width:95%;
+            max-height:95%;
+            overflow:auto;
+            position:relative
         }
         .modal-close{
             position:absolute;
-            top:20px;right:20px;
+            top:10px;right:10px;
+            background:#0088cc;
             color:#fff;
-            font-size:30px;
-            cursor:pointer;
-            width:40px;height:40px;
-            background:rgba(255,255,255,.2);
-            border-radius:50%;
-            display:flex;
-            justify-content:center;
-            align-items:center
+            border:none;
+            border-radius:5px;
+            padding:5px 10px;
+            cursor:pointer
+        }
+        .modal img{
+            max-width:100%;
+            max-height:80vh;
+            border-radius:5px
         }
         .quick-paths{
             display:flex;
@@ -425,6 +431,13 @@
                 <span class="path-chip" onclick="quickPath('%USERPROFILE%')">👤 Домой</span>
                 <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Desktop')">🖥️ Рабочий стол</span>
                 <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Downloads')">📥 Загрузки</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Documents')">📄 Документы</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Music')">🎵 Музыка</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Videos')">🎬 Видео</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Pictures')">🖼️ Картинки</span>
+                <span class="path-chip" onclick="quickPath('C:\\Windows\\System32')">⚙️ System32</span>
+                <span class="path-chip" onclick="quickPath('%APPDATA%')">📂 AppData</span>
+                <span class="path-chip" onclick="quickPath('%TEMP%')">🗑️ Temp</span>
             </div>
 
             <div style="display: flex; gap: 5px; margin: 8px 0;">
@@ -919,12 +932,24 @@
         }
 
         // ==================== МЕДИАТЕКА ====================
+        function showImageInline(url) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; max-height: 90%; overflow: auto; position: relative;">
+                    <button onclick="this.closest('.modal').remove()" class="modal-close">Закрыть</button>
+                    <img src="${url}" style="max-width: 100%; max-height: 80vh; border-radius: 5px;">
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
         async function takeScreenshot() {
             showStatus('📸 Скриншот...');
             try {
                 const blob = await apiRequest('/api/screenshot');
                 const url = URL.createObjectURL(blob);
-                showImageModal(url);
+                showImageInline(url);
                 showStatus('✅ Скриншот готов', 'success');
                 setTimeout(() => refreshMedia(), 1000);
             } catch { 
@@ -937,7 +962,7 @@
             try {
                 const blob = await apiRequest('/api/webcam');
                 const url = URL.createObjectURL(blob);
-                showImageModal(url);
+                showImageInline(url);
                 showStatus('✅ Фото готово', 'success');
                 setTimeout(() => refreshMedia(), 1000);
             } catch { 
@@ -954,10 +979,10 @@
                 const modal = document.createElement('div');
                 modal.className = 'modal';
                 modal.innerHTML = `
-                    <div style="background: white; padding: 20px; border-radius: 10px; max-width: 400px;">
+                    <div style="background: white; padding: 20px; border-radius: 10px; max-width: 400px; position: relative;">
+                        <button onclick="this.closest('.modal').remove()" class="modal-close">Закрыть</button>
                         <h3 style="margin-bottom: 15px;">🎤 Запись готова</h3>
                         <audio controls src="${url}" style="width: 100%; margin-bottom: 15px;"></audio>
-                        <button onclick="this.closest('.modal').remove()" class="btn btn-primary">Закрыть</button>
                     </div>
                 `;
                 document.body.appendChild(modal);
@@ -969,21 +994,6 @@
             }
         }
 
-        function showImageModal(url) {
-            const modal = document.createElement('div');
-            modal.className = 'modal';
-            const img = document.createElement('img');
-            img.src = url;
-            const close = document.createElement('div');
-            close.className = 'modal-close';
-            close.innerHTML = '✕';
-            close.onclick = () => document.body.removeChild(modal);
-            modal.appendChild(img);
-            modal.appendChild(close);
-            modal.onclick = (e) => { if (e.target === modal) document.body.removeChild(modal); };
-            document.body.appendChild(modal);
-        }
-
         async function refreshMedia() {
             try {
                 const data = await apiRequest('/api/media/list');
@@ -993,9 +1003,9 @@
                     if (data.screenshots.length > 0) {
                         data.screenshots.forEach(s => {
                             screenshotsHtml += `
-                                <div class="media-item" onclick="window.open('${s.url}', '_blank')">
+                                <div class="media-item" onclick="showImageInline('${s.url}')">
                                     <img src="${s.url}" alt="screenshot">
-                                    <div class="media-info">${s.time}</div>
+                                    <div class="media-info">📸 ${s.time}</div>
                                 </div>
                             `;
                         });
@@ -1009,9 +1019,9 @@
                     if (data.webcam.length > 0) {
                         data.webcam.forEach(w => {
                             webcamHtml += `
-                                <div class="media-item" onclick="window.open('${w.url}', '_blank')">
+                                <div class="media-item" onclick="showImageInline('${w.url}')">
                                     <img src="${w.url}" alt="webcam">
-                                    <div class="media-info">${w.time}</div>
+                                    <div class="media-info">📷 ${w.time}</div>
                                 </div>
                             `;
                         });
@@ -1026,8 +1036,8 @@
                         data.audio.forEach(a => {
                             audioHtml += `
                                 <div class="media-item">
-                                    <audio controls src="${a.url}"></audio>
-                                    <div class="media-info">${a.time}</div>
+                                    <audio controls src="${a.url}" style="width: 100%;"></audio>
+                                    <div class="media-info">🎤 ${a.time}</div>
                                 </div>
                             `;
                         });
