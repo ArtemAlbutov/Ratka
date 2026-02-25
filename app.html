@@ -593,12 +593,13 @@
 
         // ==================== ОСНОВНЫЕ ФУНКЦИИ ====================
         function getBaseUrl() {
+    // Берем адрес из поля ввода
     let cleanAddress = serverAddress.replace('https://', '').replace('http://', '');
-    // Убираем порт если он есть
+    // Убираем порт если есть
     cleanAddress = cleanAddress.split(':')[0];
-    return `https://${cleanAddress}`;
+    // ВАЖНО: Используем HTTP, не HTTPS!
+    return `http://${cleanAddress}`;
 }
-
         function showStatus(text, type = 'info') {
             console.log(`📢 Статус [${type}]: ${text}`);
             const s = document.getElementById('status');
@@ -1241,6 +1242,7 @@
     </script>
 </body>
 </html>
+
 
 
 
