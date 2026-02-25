@@ -281,72 +281,6 @@
             50%{opacity:0.6;transform:scale(1.2)}
             100%{opacity:1;transform:scale(1)}
         }
-        
-        /* Стили для медиатеки */
-        .media-section {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            font-weight: 600;
-            color: #333;
-        }
-        .media-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .media-item {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .media-item:hover {
-            transform: scale(1.05);
-        }
-        .media-item img {
-            width: 100%;
-            height: 90px;
-            object-fit: cover;
-        }
-        .media-item audio {
-            width: 100%;
-            height: 40px;
-            margin-top: 5px;
-        }
-        .media-info {
-            padding: 8px;
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-            background: #fafafa;
-        }
-        .media-empty {
-            text-align: center;
-            padding: 30px;
-            color: #999;
-            font-style: italic;
-            background: white;
-            border-radius: 8px;
-            grid-column: 1 / -1;
-        }
-        .badge {
-            background: #0088cc;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-        }
     </style>
 </head>
 <body>
@@ -374,7 +308,6 @@
         <div class="tab" onclick="switchTab('system')">⚙️ Система</div>
         <div class="tab" onclick="switchTab('files')">📁 Файлы</div>
         <div class="tab" onclick="switchTab('processes')">📋 Процессы</div>
-        <div class="tab" onclick="switchTab('media')">🎥 Медиатека</div>
         <div class="tab" onclick="switchTab('network')">🌐 Сеть</div>
         <div class="tab" onclick="switchTab('power')">⚡ Питание</div>
     </div>
@@ -391,11 +324,19 @@
             <div class="card-title">⚡ БЫСТРЫЕ ДЕЙСТВИЯ</div>
             <div class="grid-3">
                 <button class="btn btn-info" onclick="takeScreenshot()">📸 Скрин</button>
-                <button class="btn btn-warning" onclick="sendCommand('lock')">🔒 Блок</button>
+                <button class="btn btn-warning" onclick="takeWebcamPhoto()">📷 Вебка</button>
+                <button class="btn btn-success" onclick="startRecording()">🎤 Микрофон</button>
                 <button class="btn btn-danger" onclick="sendCommand('shutdown')">⏻ Выкл</button>
-                <button class="btn btn-success" onclick="sendCommand('restart')">🔄 Рестарт</button>
-                <button class="btn btn-purple" onclick="sendCommand('processes')">📋 Процессы</button>
                 <button class="btn" onclick="quickCmd('dir')">📁 Dir</button>
+                <button class="btn btn-purple" onclick="sendCommand('lock')">🔒 Блок</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">⚡ ДОПОЛНИТЕЛЬНО</div>
+            <div class="grid-2">
+                <button class="btn btn-success" onclick="sendCommand('restart')">🔄 Рестарт</button>
+                <button class="btn btn-primary" onclick="sendCommand('processes')">📋 Процессы</button>
             </div>
         </div>
     </div>
@@ -471,49 +412,6 @@
             </div>
 
             <div id="processesOutput" class="output"></div>
-        </div>
-    </div>
-
-    <!-- Медиатека -->
-    <div id="tab-media" class="tab-content">
-        <div class="card">
-            <div class="card-title">🎥 МЕДИАТЕКА</div>
-            
-            <div class="grid-3">
-                <button class="btn btn-primary" onclick="takeScreenshot()">📸 Скриншот</button>
-                <button class="btn btn-info" onclick="takeWebcamPhoto()">📷 Фото с вебки</button>
-                <button class="btn btn-success" onclick="startRecording()">🎤 Записать звук</button>
-            </div>
-            
-            <div class="media-section">
-                <div class="section-title">
-                    <span>📸 СКРИНШОТЫ</span>
-                    <span class="badge" id="screenshotsCount">0</span>
-                </div>
-                <div id="screenshotsList" class="media-grid">
-                    <div class="media-empty">Нет скриншотов</div>
-                </div>
-            </div>
-            
-            <div class="media-section">
-                <div class="section-title">
-                    <span>📷 ФОТО С ВЕБКИ</span>
-                    <span class="badge" id="webcamCount">0</span>
-                </div>
-                <div id="webcamList" class="media-grid">
-                    <div class="media-empty">Нет фото</div>
-                </div>
-            </div>
-            
-            <div class="media-section">
-                <div class="section-title">
-                    <span>🎤 АУДИОЗАПИСИ</span>
-                    <span class="badge" id="audioCount">0</span>
-                </div>
-                <div id="audioList" class="media-grid">
-                    <div class="media-empty">Нет записей</div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -918,7 +816,7 @@
             }
         }
 
-        // ==================== МЕДИАТЕКА ====================
+        // ==================== МЕДИА ====================
         async function takeScreenshot() {
             showStatus('📸 Скриншот...');
             try {
@@ -926,7 +824,6 @@
                 const url = URL.createObjectURL(blob);
                 showImageModal(url);
                 showStatus('✅ Скриншот готов', 'success');
-                setTimeout(() => refreshMedia(), 1000);
             } catch { 
                 showStatus('❌ Ошибка', 'error'); 
             }
@@ -939,7 +836,6 @@
                 const url = URL.createObjectURL(blob);
                 showImageModal(url);
                 showStatus('✅ Фото готово', 'success');
-                setTimeout(() => refreshMedia(), 1000);
             } catch { 
                 showStatus('❌ Ошибка', 'error'); 
             }
@@ -963,7 +859,6 @@
                 document.body.appendChild(modal);
                 
                 showStatus('✅ Запись готова', 'success');
-                setTimeout(() => refreshMedia(), 1000);
             } catch (error) {
                 showStatus('❌ Ошибка записи', 'error');
             }
@@ -984,63 +879,6 @@
             document.body.appendChild(modal);
         }
 
-        async function refreshMedia() {
-            try {
-                const data = await apiRequest('/api/media/list');
-                if (data && data.success) {
-                    document.getElementById('screenshotsCount').textContent = data.screenshots.length;
-                    let screenshotsHtml = '';
-                    if (data.screenshots.length > 0) {
-                        data.screenshots.forEach(s => {
-                            screenshotsHtml += `
-                                <div class="media-item" onclick="window.open('${s.url}', '_blank')">
-                                    <img src="${s.url}" alt="screenshot">
-                                    <div class="media-info">${s.time}</div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        screenshotsHtml = '<div class="media-empty">Нет скриншотов</div>';
-                    }
-                    document.getElementById('screenshotsList').innerHTML = screenshotsHtml;
-                    
-                    document.getElementById('webcamCount').textContent = data.webcam.length;
-                    let webcamHtml = '';
-                    if (data.webcam.length > 0) {
-                        data.webcam.forEach(w => {
-                            webcamHtml += `
-                                <div class="media-item" onclick="window.open('${w.url}', '_blank')">
-                                    <img src="${w.url}" alt="webcam">
-                                    <div class="media-info">${w.time}</div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        webcamHtml = '<div class="media-empty">Нет фото</div>';
-                    }
-                    document.getElementById('webcamList').innerHTML = webcamHtml;
-                    
-                    document.getElementById('audioCount').textContent = data.audio.length;
-                    let audioHtml = '';
-                    if (data.audio.length > 0) {
-                        data.audio.forEach(a => {
-                            audioHtml += `
-                                <div class="media-item">
-                                    <audio controls src="${a.url}"></audio>
-                                    <div class="media-info">${a.time}</div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        audioHtml = '<div class="media-empty">Нет записей</div>';
-                    }
-                    document.getElementById('audioList').innerHTML = audioHtml;
-                }
-            } catch (error) {
-                console.error('Ошибка обновления медиатеки:', error);
-            }
-        }
-
         // ==================== КОМАНДЫ ====================
         function runCustomCommand() {
             const cmd = document.getElementById('customCmd').value;
@@ -1059,7 +897,6 @@
             event.target.classList.add('active');
             document.getElementById(`tab-${tab}`).classList.add('active');
             
-            if (tab === 'media') refreshMedia();
             if (tab === 'files') listFiles();
             if (tab === 'processes') sendCommand('processes');
             if (tab === 'main') sendCommand('system');
