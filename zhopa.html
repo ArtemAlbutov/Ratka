@@ -2,17 +2,25 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>263</title>
+    <title>263 дня</title>
 </head>
 <body>
-    263
     <script>
+        function pluralDays(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " день";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " дня";
+            return n + " дней";
+        }
+
         const today = new Date();
         const start = new Date(today.getFullYear(), 0, 0);
         const dayNum = Math.floor((today - start) / 86400000);
         const daysLeft = 365 - dayNum;
-        document.body.innerText = daysLeft;
-        document.title = daysLeft;
+        
+        const result = pluralDays(daysLeft);
+        
+        document.title = result;
+        document.write(result);
     </script>
 </body>
 </html>
