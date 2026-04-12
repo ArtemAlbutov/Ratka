@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <script>
+        const today = new Date();
+        const start = new Date(today.getFullYear(), 0, 0);
+        const dayNum = Math.floor((today - start) / 86400000);
+        const daysLeft = 365 - dayNum;
+        document.write(daysLeft);
+    </script>
+</body>
+</html>
