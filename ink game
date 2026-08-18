@@ -1,0 +1,376 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- // Основной GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BoatHelper"
+ScreenGui.Parent = playerGui
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- // Главный фрейм
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 280, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+-- // Верхняя панель перетаскивания
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+-- // Заголовок
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -60, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Ink Game ESP"
+Title.TextColor3 = Color3.fromRGB(200, 200, 200)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.Parent = TopBar
+
+-- // Кнопка закрытия (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -30, 0, 0)
+CloseButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(180, 180, 180)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 16
+CloseButton.Parent = TopBar
+
+CloseButton.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+end)
+
+-- // Разделительная линия под верхней панелью
+local Divider = Instance.new("Frame")
+Divider.Name = "Divider"
+Divider.Size = UDim2.new(1, 0, 0, 1)
+Divider.Position = UDim2.new(0, 0, 0, 30)
+Divider.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Divider.BorderSizePixel = 0
+Divider.Parent = MainFrame
+
+-- // Контейнер для элементов с прокруткой
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Name = "ScrollingFrame"
+ScrollingFrame.Size = UDim2.new(1, 0, 1, -31)
+ScrollingFrame.Position = UDim2.new(0, 0, 0, 31)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.BorderSizePixel = 0
+ScrollingFrame.ScrollBarThickness = 4
+ScrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ScrollingFrame.Parent = MainFrame
+
+-- // UIListLayout для автоматического расположения
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 2)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Parent = ScrollingFrame
+
+-- // Отступ сверху
+local TopPadding = Instance.new("Frame")
+TopPadding.Name = "TopPadding"
+TopPadding.Size = UDim2.new(1, 0, 0, 8)
+TopPadding.BackgroundTransparency = 1
+TopPadding.BorderSizePixel = 0
+TopPadding.LayoutOrder = 0
+TopPadding.Parent = ScrollingFrame
+
+-- // Функция создания переключателя
+local function CreateToggle(name: string, description: string, default: boolean, callback: (boolean) -> ())
+	local ToggleFrame = Instance.new("Frame")
+	ToggleFrame.Name = name .. "_Toggle"
+	ToggleFrame.Size = UDim2.new(1, -16, 0, 50)
+	ToggleFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	ToggleFrame.BorderSizePixel = 0
+	ToggleFrame.LayoutOrder = 1
+	ToggleFrame.Parent = ScrollingFrame
+
+	-- Название функции
+	local FuncName = Instance.new("TextLabel")
+	FuncName.Name = "FuncName"
+	FuncName.Size = UDim2.new(1, -60, 0, 20)
+	FuncName.Position = UDim2.new(0, 8, 0, 5)
+	FuncName.BackgroundTransparency = 1
+	FuncName.Text = name
+	FuncName.TextColor3 = Color3.fromRGB(220, 220, 220)
+	FuncName.TextXAlignment = Enum.TextXAlignment.Left
+	FuncName.Font = Enum.Font.GothamSemibold
+	FuncName.TextSize = 14
+	FuncName.Parent = ToggleFrame
+
+	-- Описание функции
+	local FuncDesc = Instance.new("TextLabel")
+	FuncDesc.Name = "FuncDesc"
+	FuncDesc.Size = UDim2.new(1, -60, 0, 18)
+	FuncDesc.Position = UDim2.new(0, 8, 0, 26)
+	FuncDesc.BackgroundTransparency = 1
+	FuncDesc.Text = description
+	FuncDesc.TextColor3 = Color3.fromRGB(140, 140, 140)
+	FuncDesc.TextXAlignment = Enum.TextXAlignment.Left
+	FuncDesc.Font = Enum.Font.Gotham
+	FuncDesc.TextSize = 11
+	FuncDesc.TextWrapped = true
+	FuncDesc.Parent = ToggleFrame
+
+	-- Кнопка переключателя
+	local ToggleButton = Instance.new("TextButton")
+	ToggleButton.Name = "ToggleButton"
+	ToggleButton.Size = UDim2.new(0, 36, 0, 18)
+	ToggleButton.Position = UDim2.new(1, -44, 0.5, -9)
+	ToggleButton.BackgroundColor3 = default and Color3.fromRGB(70, 150, 70) or Color3.fromRGB(70, 70, 70)
+	ToggleButton.BorderSizePixel = 0
+	ToggleButton.Text = ""
+	ToggleButton.AutoButtonColor = false
+	ToggleButton.Parent = ToggleFrame
+
+	-- Ползунок внутри переключателя
+	local Slider = Instance.new("Frame")
+	Slider.Name = "Slider"
+	Slider.Size = UDim2.new(0, 14, 0, 14)
+	Slider.Position = default and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+	Slider.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+	Slider.BorderSizePixel = 0
+	Slider.Parent = ToggleButton
+
+	local isToggled = default
+
+	local function updateVisual()
+		if isToggled then
+			ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 150, 70)
+			Slider:TweenPosition(UDim2.new(1, -16, 0.5, -7), "Out", "Quad", 0.1)
+		else
+			ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+			Slider:TweenPosition(UDim2.new(0, 2, 0.5, -7), "Out", "Quad", 0.1)
+		end
+	end
+
+	ToggleButton.MouseButton1Click:Connect(function()
+		isToggled = not isToggled
+		updateVisual()
+		callback(isToggled)
+	end)
+end
+
+-- // Кнопка Destroy GUI
+local function CreateDestroyButton()
+	local DestroyFrame = Instance.new("Frame")
+	DestroyFrame.Name = "Destroy_Frame"
+	DestroyFrame.Size = UDim2.new(1, -16, 0, 40)
+	DestroyFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	DestroyFrame.BorderSizePixel = 0
+	DestroyFrame.LayoutOrder = 999
+	DestroyFrame.Parent = ScrollingFrame
+
+	local DestroyButton = Instance.new("TextButton")
+	DestroyButton.Name = "DestroyButton"
+	DestroyButton.Size = UDim2.new(1, -16, 0, 30)
+	DestroyButton.Position = UDim2.new(0, 8, 0, 5)
+	DestroyButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+	DestroyButton.BorderSizePixel = 0
+	DestroyButton.Text = "Destroy GUI"
+	DestroyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+	DestroyButton.Font = Enum.Font.GothamBold
+	DestroyButton.TextSize = 14
+	DestroyButton.AutoButtonColor = false
+	DestroyButton.Parent = DestroyFrame
+
+	DestroyButton.MouseButton1Click:Connect(function()
+		ScreenGui:Destroy()
+	end)
+
+	DestroyButton.MouseEnter:Connect(function()
+		DestroyButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+	end)
+
+	DestroyButton.MouseLeave:Connect(function()
+		DestroyButton.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+	end)
+end
+
+-- // Перетаскивание окна
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+TopBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = MainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		MainFrame.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+-- // Переключение видимости клавишей Insert
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.KeyCode == Enum.KeyCode.Insert then
+		MainFrame.Visible = not MainFrame.Visible
+	end
+end)
+
+-- // ESP СИСТЕМА
+
+-- Состояние ESP
+local espEnabled = false
+local highlightContainer = Instance.new("Folder")
+highlightContainer.Name = "ESP_Highlights"
+highlightContainer.Parent = playerGui
+
+-- Функция получения роли игрока
+local function getPlayerRole(targetPlayer)
+	local character = targetPlayer.Character
+	if not character then
+		return nil, nil
+	end
+	
+	local hasKnife = false
+	local hasDodge = false
+	
+	-- Проверка в руках (Character)
+	for _, child in ipairs(character:GetChildren()) do
+		if child:IsA("Tool") then
+			if child.Name == "Knife" or child.Name == "Fists" then
+				hasKnife = true
+			elseif child.Name == "DODGE!" then
+				hasDodge = true
+			end
+		end
+	end
+	
+	-- Проверка в инвентаре (Backpack)
+	local backpack = targetPlayer:FindFirstChild("Backpack")
+	if backpack then
+		for _, child in ipairs(backpack:GetChildren()) do
+			if child:IsA("Tool") then
+				if child.Name == "Knife" then
+					hasKnife = true
+				elseif child.Name == "DODGE!" then
+					hasDodge = true
+				end
+			end
+		end
+	end
+	
+	-- ПРИОРИТЕТ: Сначала проверяем DODGE!
+	if hasDodge then
+		return "HIDER", Color3.fromRGB(0, 255, 0)  -- Зеленый
+	elseif hasKnife then
+		return "SEEKER", Color3.fromRGB(255, 0, 0)  -- Красный
+	else
+		return "PLAYER", Color3.fromRGB(255, 255, 255)  -- Белый
+	end
+end
+
+-- Функция обновления ESP
+local function updateESP()
+	-- Очистка старых подсветок
+	highlightContainer:ClearAllChildren()
+	
+	if not espEnabled then
+		return
+	end
+	
+	-- Обновление для каждого игрока
+	for _, targetPlayer in ipairs(Players:GetPlayers()) do
+		if targetPlayer ~= player and targetPlayer.Character then
+			local character = targetPlayer.Character
+			local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+			local head = character:FindFirstChild("Head")
+			
+			if humanoidRootPart and head then
+				local role, color = getPlayerRole(targetPlayer)
+				
+				if role and color then
+					-- Создание Highlight
+					local highlight = Instance.new("Highlight")
+					highlight.Name = targetPlayer.Name
+					highlight.Adornee = character
+					highlight.FillColor = color
+					highlight.OutlineColor = color
+					highlight.FillTransparency = 0.5
+					highlight.OutlineTransparency = 0
+					highlight.Enabled = true
+					highlight.Parent = highlightContainer
+					
+					-- Создание BillboardGui для текста
+					local billboard = Instance.new("BillboardGui")
+					billboard.Name = targetPlayer.Name .. "_Label"
+					billboard.Adornee = head
+					billboard.Size = UDim2.new(0, 200, 0, 50)
+					billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+					billboard.AlwaysOnTop = true
+					billboard.Parent = highlightContainer
+					
+					-- Текстовое поле
+					local textLabel = Instance.new("TextLabel")
+					textLabel.Size = UDim2.new(1, 0, 1, 0)
+					textLabel.BackgroundTransparency = 1
+					textLabel.Text = targetPlayer.Name .. "\n[" .. role .. "]"
+					textLabel.TextColor3 = color
+					textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+					textLabel.TextStrokeTransparency = 0
+					textLabel.Font = Enum.Font.GothamBold
+					textLabel.TextSize = 16
+					textLabel.Parent = billboard
+				end
+			end
+		end
+	end
+end
+
+-- Подключение к RenderStepped для постоянного обновления
+RunService.RenderStepped:Connect(function()
+	updateESP()
+end)
+
+-- Создание переключателя ESP
+CreateToggle("ESP System", "Подсветка: Красный - Seeker, Зеленый - Hider, Белый - Player", false, function(state)
+	espEnabled = state
+	if not espEnabled then
+		highlightContainer:ClearAllChildren()
+	end
+end)
+
+-- // Создание кнопки Destroy GUI
+CreateDestroyButton()
