@@ -1,0 +1,1077 @@
+--[[
+	zhop helper - Arsenal Edition (УМНЫЙ АИМ + ИСПРАВЛЕННЫЙ ESP)
+	Умный аим: стреляет в видимые части тела с приоритетами
+	ESP: исправленное позиционирование боксов
+]]
+
+-- ================ SERVICES ================
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local TweenService = game:GetService("TweenService")
+
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local Camera = Workspace.CurrentCamera
+
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- ================ GLOBAL VARIABLES ================
+local aimEnabled = false
+local espEnabled = false
+local aimTarget = nil
+local aimPart = nil -- Часть тела для аима
+local espConnections = {}
+local ePressed = false
+local isShooting = false
+local infiniteJumpEnabled = false
+local triggerbotEnabled = false
+local aimFOV = 500
+local smoothness = 5 -- Плавность аима (1-20, где 1 = максимально плавно)
+
+-- GUI VARIABLES
+local screenGui = nil
+local mainFrame = nil
+
+-- ================ ПОЛУЧЕНИЕ КОМАНДЫ ИГРОКА ================
+local function getPlayerTeam(player)
+	local status = player:FindFirstChild("Status")
+	if status then
+		local team = status:FindFirstChild("Team")
+		if team then
+			return team.Value
+		end
+	end
+	return nil
+end
+
+local function isEnemy(player)
+	if player == Player then return false end
+	local myTeam = getPlayerTeam(Player)
+	local theirTeam = getPlayerTeam(player)
+	
+	if myTeam and theirTeam then
+		return myTeam ~= theirTeam
+	end
+	return true
+end
+
+-- ================ УМНАЯ ПРОВЕРКА ВИДИМОСТИ ================
+local function canSeePart(part)
+	if not part or not Camera then return false end
+	
+	local rayOrigin = Camera.CFrame.Position
+	local direction = (part.Position - rayOrigin)
+	local distance = direction.Magnitude
+	
+	if distance > 3000 then return false end
+	
+	local rayDirection = direction.Unit * distance
+	
+	local filterList = {}
+	
+	if Character then
+		for _, v in pairs(Character:GetDescendants()) do
+			if v:IsA("BasePart") then
+				table.insert(filterList, v)
+			end
+		end
+	end
+	
+	if part.Parent then
+		for _, v in pairs(part.Parent:GetDescendants()) do
+			if v:IsA("BasePart") then
+				table.insert(filterList, v)
+			end
+		end
+	end
+	
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+	raycastParams.FilterDescendantsInstances = filterList
+	raycastParams.IgnoreWater = true
+	
+	local raycastResult = Workspace:Raycast(rayOrigin, rayDirection, raycastParams)
+	
+	if not raycastResult then
+		return true
+	end
+	
+	local hitPart = raycastResult.Instance
+	if hitPart then
+		if part.Parent and hitPart:IsDescendantOf(part.Parent) then
+			return true
+		end
+		
+		local hitDistance = (raycastResult.Position - rayOrigin).Magnitude
+		if hitDistance > distance then
+			return true
+		end
+	end
+	
+	return false
+end
+
+-- ================ УМНЫЙ ВЫБОР ЧАСТИ ТЕЛА ================
+local function getSmartTargetPart(character)
+	if not character then return nil end
+	
+	local humanoid = character:FindFirstChild("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then return nil end
+	
+	-- Собираем все части тела
+	local bodyParts = {
+		Head = character:FindFirstChild("Head"),
+		UpperTorso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso"),
+		LowerTorso = character:FindFirstChild("LowerTorso"),
+		LeftArm = character:FindFirstChild("LeftArm") or character:FindFirstChild("LeftUpperArm"),
+		RightArm = character:FindFirstChild("RightArm") or character:FindFirstChild("RightUpperArm"),
+		LeftLeg = character:FindFirstChild("LeftLeg") or character:FindFirstChild("LeftUpperLeg"),
+		RightLeg = character:FindFirstChild("RightLeg") or character:FindFirstChild("RightUpperLeg"),
+		HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+	}
+	
+	-- Проверяем видимость каждой части
+	local visibleParts = {}
+	for name, part in pairs(bodyParts) do
+		if part and canSeePart(part) then
+			table.insert(visibleParts, {name = name, part = part, priority = 0})
+		end
+	end
+	
+	if #visibleParts == 0 then return nil end
+	
+	-- Устанавливаем приоритеты
+	for _, v in ipairs(visibleParts) do
+		if v.name == "Head" then
+			v.priority = 4 -- Высший приоритет
+		elseif v.name == "UpperTorso" or v.name == "HumanoidRootPart" then
+			v.priority = 3 -- Высокий приоритет
+		elseif v.name == "LowerTorso" then
+			v.priority = 2 -- Средний приоритет
+		elseif v.name == "LeftArm" or v.name == "RightArm" then
+			v.priority = 1 -- Низкий приоритет
+		elseif v.name == "LeftLeg" or v.name == "RightLeg" then
+			v.priority = 0 -- Самый низкий приоритет
+		end
+	end
+	
+	-- Логика выбора
+	local headVisible = false
+	local torsoVisible = false
+	local armsVisible = false
+	local legsVisible = false
+	
+	for _, v in ipairs(visibleParts) do
+		if v.name == "Head" then headVisible = true end
+		if v.name == "UpperTorso" or v.name == "LowerTorso" or v.name == "HumanoidRootPart" then torsoVisible = true end
+		if v.name == "LeftArm" or v.name == "RightArm" then armsVisible = true end
+		if v.name == "LeftLeg" or v.name == "RightLeg" then legsVisible = true end
+	end
+	
+	-- Выбираем цель в зависимости от видимости
+	if headVisible and torsoVisible then
+		-- Видим голову и тело - шанс 70% тело, 30% голова
+		if math.random() < 0.7 then
+			-- Выбираем тело
+			for _, v in ipairs(visibleParts) do
+				if v.name == "UpperTorso" or v.name == "HumanoidRootPart" then
+					return v.part
+				end
+			end
+		else
+			-- Выбираем голову
+			for _, v in ipairs(visibleParts) do
+				if v.name == "Head" then
+					return v.part
+				end
+			end
+		end
+	elseif headVisible and not torsoVisible then
+		-- Видим только голову
+		for _, v in ipairs(visibleParts) do
+			if v.name == "Head" then
+				return v.part
+			end
+		end
+	elseif torsoVisible and not headVisible then
+		-- Видим тело, но не голову
+		if armsVisible and math.random() < 0.3 then
+			-- 30% шанс стрелять в руки
+			local arms = {}
+			for _, v in ipairs(visibleParts) do
+				if v.name == "LeftArm" or v.name == "RightArm" then
+					table.insert(arms, v)
+				end
+			end
+			if #arms > 0 then
+				return arms[math.random(1, #arms)].part
+			end
+		end
+		
+		-- Иначе стреляем в тело
+		for _, v in ipairs(visibleParts) do
+			if v.name == "UpperTorso" or v.name == "LowerTorso" or v.name == "HumanoidRootPart" then
+				return v.part
+			end
+		end
+	elseif (armsVisible or legsVisible) and not torsoVisible and not headVisible then
+		-- Видим только конечности
+		local limbs = {}
+		for _, v in ipairs(visibleParts) do
+			if v.name == "LeftArm" or v.name == "RightArm" or v.name == "LeftLeg" or v.name == "RightLeg" then
+				table.insert(limbs, v)
+			end
+		end
+		
+		if #limbs > 0 then
+			-- Шанс 50/50 между руками и ногами
+			if armsVisible and legsVisible then
+				if math.random() < 0.5 then
+					-- Выбираем руку
+					local arms = {}
+					for _, v in ipairs(limbs) do
+						if v.name == "LeftArm" or v.name == "RightArm" then
+							table.insert(arms, v)
+						end
+					end
+					if #arms > 0 then
+						return arms[math.random(1, #arms)].part
+					end
+				else
+					-- Выбираем ногу
+					local legs = {}
+					for _, v in ipairs(limbs) do
+						if v.name == "LeftLeg" or v.name == "RightLeg" then
+							table.insert(legs, v)
+						end
+					end
+					if #legs > 0 then
+						return legs[math.random(1, #legs)].part
+					end
+				end
+			else
+				-- Только руки или только ноги
+				return limbs[math.random(1, #limbs)].part
+			end
+		end
+	end
+	
+	-- Если ничего не выбрали, возвращаем самую приоритетную часть
+	table.sort(visibleParts, function(a, b) return a.priority > b.priority end)
+	return visibleParts[1].part
+end
+
+-- ================ ФУНКЦИЯ ПОИСКА ВРАГА ================
+local function findNearestEnemy()
+	local nearestTarget = nil
+	local nearestPart = nil
+	local nearestDistance = math.huge
+	local viewportSize = Camera.ViewportSize
+	local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+	
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= Player and player.Character and isEnemy(player) then
+			local targetHumanoid = player.Character:FindFirstChild("Humanoid")
+			
+			if targetHumanoid and targetHumanoid.Health > 0 then
+				-- Получаем умную часть тела
+				local targetPart = getSmartTargetPart(player.Character)
+				
+				if targetPart then
+					local distance3D = (targetPart.Position - Camera.CFrame.Position).Magnitude
+					if distance3D < 3000 then
+						local screenPos, onScreen = Camera:WorldToScreenPoint(targetPart.Position)
+						
+						if onScreen then
+							local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
+							local distance2D = (screenPoint - screenCenter).Magnitude
+							
+							if distance2D < aimFOV and distance2D < nearestDistance then
+								nearestDistance = distance2D
+								nearestTarget = player
+								nearestPart = targetPart
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	
+	return nearestTarget, nearestPart
+end
+
+-- ================ AIM FUNCTION ================
+local function toggleAim(state)
+	aimEnabled = state
+	print("Aim: " .. (state and "Enabled" or "Disabled"))
+end
+
+local function aimAtTarget()
+	if aimTarget and aimTarget.Character and aimPart then
+		local targetHumanoid = aimTarget.Character:FindFirstChild("Humanoid")
+		
+		if targetHumanoid and targetHumanoid.Health > 0 and aimPart.Parent then
+			if canSeePart(aimPart) then
+				local targetPos = aimPart.Position
+				
+				-- Плавный аим
+				if smoothness > 1 then
+					local currentCF = Camera.CFrame
+					local targetCF = CFrame.lookAt(currentCF.Position, targetPos)
+					Camera.CFrame = currentCF:Lerp(targetCF, 1 / smoothness)
+				else
+					Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+				end
+			else
+				-- Если часть стала невидимой, ищем новую
+				aimPart = getSmartTargetPart(aimTarget.Character)
+				if not aimPart then
+					aimTarget = nil
+				end
+			end
+		else
+			aimTarget = nil
+			aimPart = nil
+		end
+	end
+end
+
+-- ================ TRIGGERBOT FUNCTION ================
+local function toggleTriggerbot(state)
+	triggerbotEnabled = state
+	print("Triggerbot: " .. (state and "Enabled" or "Disabled"))
+end
+
+-- ================ INFINITE JUMP FUNCTION ================
+local function toggleInfiniteJump(state)
+	infiniteJumpEnabled = state
+	print("Infinite Jump: " .. (state and "Enabled" or "Disabled"))
+end
+
+-- ================ ИСПРАВЛЕННЫЙ ESP ================
+local espGui = nil
+local espBoxes = {}
+
+local function toggleESP(state)
+	espEnabled = state
+	print("ESP: " .. (state and "Enabled" or "Disabled"))
+	
+	if state then
+		if not espGui then
+			espGui = Instance.new("ScreenGui")
+			espGui.Name = "ESPGui"
+			espGui.ResetOnSpawn = false
+			espGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+			espGui.DisplayOrder = 999998
+			espGui.IgnoreGuiInset = true
+			espGui.Parent = Player:WaitForChild("PlayerGui")
+		end
+		
+		espConnections.update = RunService.RenderStepped:Connect(function()
+			local viewportSize = Camera.ViewportSize
+			
+			for _, player in pairs(Players:GetPlayers()) do
+				if player ~= Player and player.Character then
+					local humanoid = player.Character:FindFirstChild("Humanoid")
+					local head = player.Character:FindFirstChild("Head")
+					local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+					local lowerTorso = player.Character:FindFirstChild("LowerTorso") or player.Character:FindFirstChild("Torso")
+					
+					if humanoid and head and humanoid.Health > 0 and rootPart and lowerTorso then
+						-- Исправленный расчет позиций для бокса
+						local headPos = head.Position + Vector3.new(0, 0.5, 0) -- Немного выше головы
+						local feetPos = lowerTorso.Position - Vector3.new(0, lowerTorso.Size.Y / 2 + 0.5, 0) -- Нижняя точка
+						
+						local headScreen, headOnScreen = Camera:WorldToScreenPoint(headPos)
+						local feetScreen, feetOnScreen = Camera:WorldToScreenPoint(feetPos)
+						
+						if headOnScreen and feetOnScreen then
+							-- Расширенные границы для отрисовки
+							local margin = 100
+							if headScreen.X >= -margin and headScreen.X <= viewportSize.X + margin and
+							   headScreen.Y >= -margin and headScreen.Y <= viewportSize.Y + margin and
+							   feetScreen.X >= -margin and feetScreen.X <= viewportSize.X + margin and
+							   feetScreen.Y >= -margin and feetScreen.Y <= viewportSize.Y + margin then
+								
+								local height = math.abs(headScreen.Y - feetScreen.Y)
+								local width = height * 0.5 -- Немного шире для лучшей видимости
+								
+								if height > 10 and height < viewportSize.Y * 2 and width > 5 then
+									local boxX = (headScreen.X + feetScreen.X) / 2 - width / 2
+									local boxY = math.min(headScreen.Y, feetScreen.Y)
+									
+									local boxColor
+									if isEnemy(player) then
+										boxColor = Color3.fromRGB(255, 50, 50) -- Ярче красный для врагов
+									else
+										boxColor = Color3.fromRGB(50, 255, 50) -- Ярче зеленый для союзников
+									end
+									
+									-- Добавляем поле здоровья
+									local healthPercent = humanoid.Health / humanoid.MaxHealth
+									local healthColor = Color3.fromRGB(255, 255, 255)
+									if healthPercent > 0.6 then
+										healthColor = Color3.fromRGB(50, 255, 50)
+									elseif healthPercent > 0.3 then
+										healthColor = Color3.fromRGB(255, 255, 50)
+									else
+										healthColor = Color3.fromRGB(255, 50, 50)
+									end
+									
+									local boxData = espBoxes[player.UserId]
+									if not boxData then
+										local boxContainer = Instance.new("Frame")
+										boxContainer.BackgroundTransparency = 1
+										boxContainer.ZIndex = 10
+										boxContainer.Parent = espGui
+										
+										local lines = {}
+										for i = 1, 4 do
+											local line = Instance.new("Frame")
+											line.BackgroundColor3 = boxColor
+											line.BorderSizePixel = 0
+											line.ZIndex = 11
+											line.Parent = boxContainer
+											lines[i] = line
+										end
+										
+										local nameLabel = Instance.new("TextLabel")
+										nameLabel.BackgroundTransparency = 1
+										nameLabel.TextColor3 = boxColor
+										nameLabel.Font = Enum.Font.GothamBold
+										nameLabel.TextSize = 13
+										nameLabel.TextStrokeTransparency = 0.7
+										nameLabel.ZIndex = 12
+										nameLabel.Parent = boxContainer
+										
+										local healthBar = Instance.new("Frame")
+										healthBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+										healthBar.BorderSizePixel = 0
+										healthBar.ZIndex = 12
+										healthBar.Parent = boxContainer
+										
+										local healthFill = Instance.new("Frame")
+										healthFill.BackgroundColor3 = healthColor
+										healthFill.BorderSizePixel = 0
+										healthFill.ZIndex = 13
+										healthFill.Parent = healthBar
+										
+										boxData = {
+											container = boxContainer,
+											lines = lines,
+											nameLabel = nameLabel,
+											healthBar = healthBar,
+											healthFill = healthFill
+										}
+										espBoxes[player.UserId] = boxData
+									end
+									
+									for _, line in pairs(boxData.lines) do
+										line.BackgroundColor3 = boxColor
+									end
+									boxData.nameLabel.TextColor3 = boxColor
+									
+									boxData.container.Size = UDim2.new(0, width + 6, 0, height + 6)
+									boxData.container.Position = UDim2.new(0, boxX - 3, 0, boxY - 3)
+									boxData.container.Visible = true
+									
+									-- Линии бокса
+									boxData.lines[1].Size = UDim2.new(1, 0, 0, 2)
+									boxData.lines[1].Position = UDim2.new(0, 0, 0, 0)
+									
+									boxData.lines[2].Size = UDim2.new(1, 0, 0, 2)
+									boxData.lines[2].Position = UDim2.new(0, 0, 1, -2)
+									
+									boxData.lines[3].Size = UDim2.new(0, 2, 1, 0)
+									boxData.lines[3].Position = UDim2.new(0, 0, 0, 0)
+									
+									boxData.lines[4].Size = UDim2.new(0, 2, 1, 0)
+									boxData.lines[4].Position = UDim2.new(1, -2, 0, 0)
+									
+									-- Имя и здоровье
+									boxData.nameLabel.Size = UDim2.new(0, width + 30, 0, 18)
+									boxData.nameLabel.Position = UDim2.new(0.5, -(width + 30) / 2, 0, -22)
+									boxData.nameLabel.Text = player.Name .. " [" .. math.floor(humanoid.Health) .. " HP]"
+									boxData.nameLabel.Visible = true
+									
+									-- Полоса здоровья
+									boxData.healthBar.Size = UDim2.new(0, 2, 1, 0)
+									boxData.healthBar.Position = UDim2.new(1, 2, 0, 0)
+									boxData.healthBar.Visible = true
+									
+									boxData.healthFill.Size = UDim2.new(1, 0, healthPercent, 0)
+									boxData.healthFill.Position = UDim2.new(0, 0, 1 - healthPercent, 0)
+									boxData.healthFill.BackgroundColor3 = healthColor
+								else
+									if espBoxes[player.UserId] then
+										espBoxes[player.UserId].container.Visible = false
+									end
+								end
+							else
+								if espBoxes[player.UserId] then
+									espBoxes[player.UserId].container.Visible = false
+								end
+							end
+						else
+							if espBoxes[player.UserId] then
+								espBoxes[player.UserId].container.Visible = false
+							end
+						end
+					else
+						if espBoxes[player.UserId] then
+							espBoxes[player.UserId].container.Visible = false
+						end
+					end
+				else
+					if espBoxes[player.UserId] then
+						espBoxes[player.UserId].container.Visible = false
+					end
+				end
+			end
+		end)
+	else
+		if espConnections.update then
+			espConnections.update:Disconnect()
+			espConnections.update = nil
+		end
+		
+		for userId, boxData in pairs(espBoxes) do
+			pcall(function() 
+				boxData.container:Destroy()
+			end)
+		end
+		espBoxes = {}
+		
+		if espGui then
+			espGui:Destroy()
+			espGui = nil
+		end
+	end
+end
+
+-- ================ FOV FUNCTION ================
+local fovEnabled = false
+local fovValue = 70
+local fovConnection = nil
+
+local function setFOV(value)
+	fovValue = math.clamp(value, 1, 120)
+	if fovEnabled then
+		print("FOV: " .. fovValue)
+	end
+end
+
+local function toggleFOV(state)
+	fovEnabled = state
+	print("FOV: " .. (state and "Enabled" or "Disabled"))
+	
+	if state then
+		fovConnection = RunService.RenderStepped:Connect(function()
+			if fovEnabled and Workspace.CurrentCamera then
+				Workspace.CurrentCamera.FieldOfView = fovValue
+			end
+		end)
+	else
+		if fovConnection then
+			fovConnection:Disconnect()
+			fovConnection = nil
+		end
+		if Workspace.CurrentCamera then
+			Workspace.CurrentCamera.FieldOfView = 70
+		end
+	end
+end
+
+-- ================ INPUT HANDLERS ================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	-- Infinite Jump
+	if input.KeyCode == Enum.KeyCode.Space and infiniteJumpEnabled and Humanoid then
+		Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+	
+	-- Aim (держим E)
+	if input.KeyCode == Enum.KeyCode.E then
+		ePressed = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.E then
+		ePressed = false
+		if isShooting then
+			isShooting = false
+			pcall(function()
+				VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+			end)
+		end
+		aimTarget = nil
+		aimPart = nil
+	end
+end)
+
+-- ================ MAIN LOOP (AIM + TRIGGERBOT) ================
+RunService.RenderStepped:Connect(function()
+	-- AIM
+	if aimEnabled and ePressed then
+		if aimTarget and aimTarget.Character and aimPart then
+			local targetHumanoid = aimTarget.Character:FindFirstChild("Humanoid")
+			if targetHumanoid and targetHumanoid.Health > 0 and aimPart.Parent then
+				aimAtTarget()
+			else
+				aimTarget = nil
+				aimPart = nil
+			end
+		else
+			aimTarget, aimPart = findNearestEnemy()
+		end
+	end
+	
+	-- TRIGGERBOT
+	if triggerbotEnabled and aimEnabled and ePressed then
+		if aimTarget and aimTarget.Character and aimPart then
+			local targetHumanoid = aimTarget.Character:FindFirstChild("Humanoid")
+			
+			if targetHumanoid and targetHumanoid.Health > 0 and aimPart.Parent then
+				if canSeePart(aimPart) and isEnemy(aimTarget) then
+					local screenPos, onScreen = Camera:WorldToScreenPoint(aimPart.Position)
+					
+					if onScreen then
+						local viewportSize = Camera.ViewportSize
+						local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+						local screenPoint = Vector2.new(screenPos.X, screenPos.Y)
+						local distance = (screenPoint - screenCenter).Magnitude
+						
+						-- Увеличиваем радиус срабатывания для разных частей тела
+						local triggerRadius = 100
+						if aimPart.Name == "Head" then
+							triggerRadius = 80 -- Меньше радиус для головы (точнее)
+						elseif aimPart.Name == "UpperTorso" or aimPart.Name == "LowerTorso" or aimPart.Name == "HumanoidRootPart" then
+							triggerRadius = 120 -- Больше радиус для тела
+						end
+						
+						if distance < triggerRadius then
+							if not isShooting then
+								isShooting = true
+								pcall(function()
+									VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 1)
+								end)
+							end
+						else
+							if isShooting then
+								isShooting = false
+								pcall(function()
+									VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+								end)
+							end
+						end
+					else
+						if isShooting then
+							isShooting = false
+							pcall(function()
+								VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+							end)
+						end
+					end
+				else
+					if isShooting then
+						isShooting = false
+						pcall(function()
+							VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+						end)
+					end
+				end
+			else
+				if isShooting then
+					isShooting = false
+					pcall(function()
+						VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+					end)
+				end
+				aimTarget = nil
+				aimPart = nil
+			end
+		else
+			if isShooting then
+				isShooting = false
+				pcall(function()
+					VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 1)
+				end)
+			end
+			aimTarget = nil
+			aimPart = nil
+		end
+	end
+end)
+
+-- ================ CHARACTER HANDLING ================
+Player.CharacterAdded:Connect(function(char)
+	Character = char
+	Humanoid = char:WaitForChild("Humanoid")
+	RootPart = char:WaitForChild("HumanoidRootPart")
+	
+	task.wait(0.1)
+	
+	if fovEnabled and Workspace.CurrentCamera then
+		Workspace.CurrentCamera.FieldOfView = fovValue
+	end
+end)
+
+-- ================ GUI CREATION ================
+local function createGUI()
+	if screenGui then
+		screenGui:Destroy()
+		screenGui = nil
+	end
+	
+	screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "ZhopHelperGui"
+	screenGui.ResetOnSpawn = false
+	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.DisplayOrder = 2147483647
+	screenGui.Parent = Player:WaitForChild("PlayerGui")
+	
+	mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 300, 0, 400)
+	mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.ZIndex = 2147483647
+	mainFrame.Visible = true
+	mainFrame.Parent = screenGui
+	
+	local topBar = Instance.new("Frame")
+	topBar.Name = "TopBar"
+	topBar.Size = UDim2.new(1, 0, 0, 30)
+	topBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	topBar.BorderSizePixel = 0
+	topBar.ZIndex = 2147483647
+	topBar.Parent = mainFrame
+	
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Name = "TitleLabel"
+	titleLabel.Size = UDim2.new(1, 0, 1, 0)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = "zhop helper - Smart"
+	titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+	titleLabel.TextScaled = false
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 16
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Position = UDim2.new(0, 10, 0, 0)
+	titleLabel.ZIndex = 2147483647
+	titleLabel.Parent = topBar
+	
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Name = "CloseBtn"
+	closeBtn.Size = UDim2.new(0, 30, 1, 0)
+	closeBtn.Position = UDim2.new(1, -30, 0, 0)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	closeBtn.BorderSizePixel = 0
+	closeBtn.Text = "X"
+	closeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.TextSize = 16
+	closeBtn.ZIndex = 2147483647
+	closeBtn.Parent = topBar
+	
+	closeBtn.MouseButton1Click:Connect(function()
+		screenGui.Enabled = false
+	end)
+	
+	-- DRAG LOGIC
+	local dragging = false
+	local dragStartPos = nil
+	local dragStartMouse = nil
+	
+	topBar.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStartPos = mainFrame.Position
+			dragStartMouse = Vector2.new(input.Position.X, input.Position.Y)
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+			local delta = Vector2.new(input.Position.X, input.Position.Y) - dragStartMouse
+			local newX = dragStartPos.X.Scale + delta.X / screenGui.AbsoluteSize.X
+			local newY = dragStartPos.Y.Scale + delta.Y / screenGui.AbsoluteSize.Y
+			mainFrame.Position = UDim2.new(newX, 0, newY, 0)
+		end
+	end)
+	
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+	
+	-- TOGGLE VISIBILITY
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if input.KeyCode == Enum.KeyCode.Insert then
+			if screenGui then
+				screenGui.Enabled = not screenGui.Enabled
+			end
+		end
+	end)
+	
+	-- CONTENT AREA
+	local contentFrame = Instance.new("Frame")
+	contentFrame.Name = "ContentFrame"
+	contentFrame.Size = UDim2.new(1, 0, 1, -30)
+	contentFrame.Position = UDim2.new(0, 0, 0, 30)
+	contentFrame.BackgroundTransparency = 1
+	contentFrame.ZIndex = 2147483647
+	contentFrame.Parent = mainFrame
+	
+	local functionList = Instance.new("ScrollingFrame")
+	functionList.Name = "FunctionList"
+	functionList.Size = UDim2.new(1, 0, 1, 0)
+	functionList.BackgroundTransparency = 1
+	functionList.ScrollBarThickness = 8
+	functionList.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 50)
+	functionList.ZIndex = 2147483647
+	functionList.Parent = contentFrame
+	
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 6)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = functionList
+	
+	local listPadding = Instance.new("UIPadding")
+	listPadding.PaddingTop = UDim.new(0, 6)
+	listPadding.PaddingBottom = UDim.new(0, 6)
+	listPadding.PaddingLeft = UDim.new(0, 6)
+	listPadding.PaddingRight = UDim.new(0, 6)
+	listPadding.Parent = functionList
+	
+	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		functionList.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 12)
+	end)
+	
+	-- HELPER FUNCTIONS
+	local function createToggle(order, name, desc, callback)
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.new(1, 0, 0, 45)
+		frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		frame.BorderSizePixel = 0
+		frame.LayoutOrder = order
+		frame.ZIndex = 2147483647
+		frame.Parent = functionList
+		
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, -70, 0, 18)
+		nameLabel.Position = UDim2.new(0, 8, 0, 2)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Text = name
+		nameLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextSize = 14
+		nameLabel.ZIndex = 2147483647
+		nameLabel.Parent = frame
+		
+		local descLabel = Instance.new("TextLabel")
+		descLabel.Size = UDim2.new(1, -70, 0, 14)
+		descLabel.Position = UDim2.new(0, 8, 0, 20)
+		descLabel.BackgroundTransparency = 1
+		descLabel.Text = desc
+		descLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+		descLabel.TextXAlignment = Enum.TextXAlignment.Left
+		descLabel.Font = Enum.Font.Gotham
+		descLabel.TextSize = 11
+		descLabel.ZIndex = 2147483647
+		descLabel.Parent = frame
+		
+		local btn = Instance.new("TextButton")
+		btn.Size = UDim2.new(0, 50, 0, 28)
+		btn.Position = UDim2.new(1, -58, 0, 8)
+		btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+		btn.BorderSizePixel = 0
+		btn.Text = "Off"
+		btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+		btn.Font = Enum.Font.GothamBold
+		btn.TextSize = 12
+		btn.ZIndex = 2147483647
+		btn.Parent = frame
+		
+		local state = false
+		btn.MouseButton1Click:Connect(function()
+			state = not state
+			btn.Text = state and "On" or "Off"
+			btn.BackgroundColor3 = state and Color3.fromRGB(70, 120, 70) or Color3.fromRGB(60, 60, 60)
+			pcall(function() callback(state) end)
+		end)
+		
+		return {frame = frame, btn = btn, setState = function(s) state = s end}
+	end
+	
+	local function createSlider(order, name, desc, min, max, def, callback)
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.new(1, 0, 0, 60)
+		frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		frame.BorderSizePixel = 0
+		frame.LayoutOrder = order
+		frame.ZIndex = 2147483647
+		frame.Parent = functionList
+		
+		local nameLabel = Instance.new("TextLabel")
+		nameLabel.Size = UDim2.new(1, -80, 0, 16)
+		nameLabel.Position = UDim2.new(0, 8, 0, 2)
+		nameLabel.BackgroundTransparency = 1
+		nameLabel.Text = name
+		nameLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+		nameLabel.Font = Enum.Font.GothamBold
+		nameLabel.TextSize = 14
+		nameLabel.ZIndex = 2147483647
+		nameLabel.Parent = frame
+		
+		local descLabel = Instance.new("TextLabel")
+		descLabel.Size = UDim2.new(1, -80, 0, 12)
+		descLabel.Position = UDim2.new(0, 8, 0, 18)
+		descLabel.BackgroundTransparency = 1
+		descLabel.Text = desc
+		descLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+		descLabel.TextXAlignment = Enum.TextXAlignment.Left
+		descLabel.Font = Enum.Font.Gotham
+		descLabel.TextSize = 10
+		descLabel.ZIndex = 2147483647
+		descLabel.Parent = frame
+		
+		local valLabel = Instance.new("TextLabel")
+		valLabel.Size = UDim2.new(0, 60, 0, 16)
+		valLabel.Position = UDim2.new(1, -68, 0, 2)
+		valLabel.BackgroundTransparency = 1
+		valLabel.Text = tostring(def)
+		valLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+		valLabel.TextXAlignment = Enum.TextXAlignment.Right
+		valLabel.Font = Enum.Font.GothamBold
+		valLabel.TextSize = 14
+		valLabel.ZIndex = 2147483647
+		valLabel.Parent = frame
+		
+		local track = Instance.new("Frame")
+		track.Size = UDim2.new(1, -16, 0, 6)
+		track.Position = UDim2.new(0, 8, 0, 42)
+		track.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		track.BorderSizePixel = 0
+		track.ZIndex = 2147483647
+		track.Parent = frame
+		
+		local fill = Instance.new("Frame")
+		fill.Size = UDim2.new((def - min) / (max - min), 0, 1, 0)
+		fill.BackgroundColor3 = Color3.fromRGB(70, 120, 200)
+		fill.BorderSizePixel = 0
+		fill.ZIndex = 2147483647
+		fill.Parent = track
+		
+		local sliderBtn = Instance.new("TextButton")
+		sliderBtn.Size = UDim2.new(0, 16, 0, 16)
+		sliderBtn.Position = UDim2.new((def - min) / (max - min), -8, 0, -5)
+		sliderBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+		sliderBtn.BorderSizePixel = 0
+		sliderBtn.Text = ""
+		sliderBtn.ZIndex = 2147483647
+		sliderBtn.Parent = track
+		
+		local current = def
+		local draggingSlider = false
+		
+		local function update(value)
+			local clamped = math.clamp(value, min, max)
+			current = math.floor(clamped)
+			local percent = (clamped - min) / (max - min)
+			fill.Size = UDim2.new(percent, 0, 1, 0)
+			sliderBtn.Position = UDim2.new(percent, -8, 0, -5)
+			valLabel.Text = tostring(current)
+			pcall(function() callback(current) end)
+		end
+		
+		sliderBtn.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				draggingSlider = true
+			end
+		end)
+		
+		UserInputService.InputChanged:Connect(function(input)
+			if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
+				local mousePos = input.Position.X
+				local trackAbsPos = track.AbsolutePosition.X
+				local trackAbsSize = track.AbsoluteSize.X
+				local relativePos = math.clamp((mousePos - trackAbsPos) / trackAbsSize, 0, 1)
+				update(min + (max - min) * relativePos)
+			end
+		end)
+		
+		UserInputService.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				draggingSlider = false
+			end
+		end)
+		
+		track.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				local mousePos = input.Position.X
+				local trackAbsPos = track.AbsolutePosition.X
+				local trackAbsSize = track.AbsoluteSize.X
+				local relativePos = math.clamp((mousePos - trackAbsPos) / trackAbsSize, 0, 1)
+				update(min + (max - min) * relativePos)
+			end
+		end)
+		
+		return {frame = frame, setValue = update, getValue = function() return current end}
+	end
+	
+	-- BUILD MENU
+	local order = 1
+	
+	-- Toggles
+	createToggle(order, "Smart Aim", "Hold E to aim (smart target)", toggleAim); order = order + 1
+	createToggle(order, "Triggerbot", "Auto shoot with AIM (hold E)", toggleTriggerbot); order = order + 1
+	createToggle(order, "ESP", "Player boxes + health bar", toggleESP); order = order + 1
+	createToggle(order, "Infinite Jump", "Unlimited jumping", toggleInfiniteJump); order = order + 1
+	createToggle(order, "FOV Changer", "Enable FOV change", toggleFOV); order = order + 1
+	
+	-- Sliders
+	createSlider(order, "Aim FOV", "Aim Field of View (1-1000)", 1, 1000, 500, function(v) 
+		aimFOV = v
+		print("Aim FOV: " .. v)
+	end); order = order + 1
+	
+	createSlider(order, "Aim Smoothness", "Aim smoothness (1-20)", 1, 20, 5, function(v) 
+		smoothness = v
+		print("Aim Smoothness: " .. v)
+	end); order = order + 1
+	
+	createSlider(order, "FOV Value", "Field of View (1-120)", 1, 120, 70, function(v) 
+		setFOV(v)
+	end); order = order + 1
+	
+	-- Обновляем размер
+	task.wait(0.1)
+	functionList.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 12)
+end
+
+-- ================ INITIAL SETUP ================
+createGUI()
+
+print("zhop helper - Smart loaded!")
+print("Press Insert to toggle menu.")
+print("")
+print("=== FEATURES ===")
+print("SMART AIM: Targets visible body parts with priorities")
+print("TRIGGERBOT: Auto shoot with smart aim")
+print("ESP: Player boxes with health bars")
+print("INFINITE JUMP: Unlimited jumping")
+print("FOV: Custom field of view")
