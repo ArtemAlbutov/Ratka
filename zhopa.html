@@ -35,8 +35,8 @@
         const minutesLeft = Math.floor(diff / 60000) % 60;
 
         // Собираем всё в одну строку
-        const result = pluralDays(daysLeft) + " " + 
-               pluralHours(hoursLeft) + " " + 
+        const result = pluralDays(daysLeft) + "<br>" + 
+               pluralHours(hoursLeft) + "<br>" + 
                pluralMinutes(minutesLeft);
 
         document.title = result;
