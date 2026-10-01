@@ -4,6 +4,7 @@
     <title>263 дня</title>
 </head>
 <body>
+    <date></date>
     <script>
         function pluralDays(n) {
             if (n % 10 === 1 && n % 100 !== 11) return n + " день";
@@ -37,7 +38,7 @@
             const result = pluralDays(daysLeft) + " " + pluralHours(hoursLeft) + " " + pluralMinutes(minutesLeft);
 
             document.title = result;
-            document.body.textContent = result;
+            document.querySelector("date").textContent = result;
         }
 
         tick();
