@@ -25,6 +25,13 @@
         }
 
         const today = new Date();
+        
+        // 1. Получаем текущую дату в формате ДД.ММ.ГГГГ
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        const dateStr = dd + '.' + mm + '.' + yyyy;
+
         const start = new Date(today.getFullYear(), 0, 0);
         const dayNum = Math.floor((today - start) / 86400000);
         const daysLeft = 365 - dayNum;
@@ -36,7 +43,8 @@
         diff %= 3600000;
         const minutes = Math.floor(diff / 60000);
 
-        const result = pluralDays(daysLeft) + " " + pluralHours(hours) + " " + pluralMinutes(minutes);
+        // 2. Добавляем дату в начало строки
+        const result = dateStr + " " + pluralDays(daysLeft) + " " + pluralHours(hours) + " " + pluralMinutes(minutes);
 
         document.title = result;
         document.write(result);
