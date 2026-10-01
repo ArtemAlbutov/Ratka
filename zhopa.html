@@ -11,13 +11,32 @@
             return n + " дней";
         }
 
+        function pluralHours(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " час";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " часа";
+            return n + " часов";
+        }
+
+        function pluralMinutes(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " минута";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " минуты";
+            return n + " минут";
+        }
+
         const today = new Date();
         const start = new Date(today.getFullYear(), 0, 0);
         const dayNum = Math.floor((today - start) / 86400000);
         const daysLeft = 365 - dayNum;
-        
-        const result = pluralDays(daysLeft);
-        
+
+        // Считаем часы и минуты до конца года
+        const end = new Date(today.getFullYear() + 1, 0, 1);
+        const diff = end - today;
+        const hoursLeft = Math.floor(diff / 3600000) % 24;
+        const minutesLeft = Math.floor(diff / 60000) % 60;
+
+        // Собираем всё в одну строку
+        const result = pluralDays(daysLeft) + " " + pluralHours(hoursLeft) + " " + pluralMinutes(minutesLeft);
+
         document.title = result;
         document.write(result);
     </script>
