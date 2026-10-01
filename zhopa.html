@@ -7,26 +7,33 @@
 <body>
     <div id="output"></div>
     <script>
-        function pluralDays(n) {
-            if (n % 10 === 1 && n % 100 !== 11) return n + " день";
-            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " дня";
-            return n + " дней";
+        function plural(n, one, few, many) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " " + one;
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " " + few;
+            return n + " " + many;
         }
 
-        function pluralHours(n) {
-            if (n % 10 === 1 && n % 100 !== 11) return n + " час";
-            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " часа";
-            return n + " часов";
-        }
+        function update() {
+            const now = new Date();
+            const endOfYear = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0);
+            let diff = endOfYear - now;
+            if (diff < 0) diff = 0;
 
-        function pluralMinutes(n) {
-            if (n % 10 === 1 && n % 100 !== 11) return n + " минута";
-            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " минуты";
-            return n + " минут";
+            const days = Math.floor(diff / 86400000); diff -= days * 86400000;
+            const hours = Math.floor(diff / 3600000); diff -= hours * 3600000;
+            const minutes = Math.floor(diff / 60000);
+
+            const result =
+                plural(days, "день", "дня", "дней") + ", " +
+                plural(hours, "час", "часа", "часов") + ", " +
+                plural(minutes, "минута", "минуты", "минут");
+
+            document.title = result;
+            document.getElementById("output").textContent = result;
         }
 
         update();
-        setInterval(update, 1);
+        setInterval(update, 1000);
     </script>
 </body>
 </html>
