@@ -2,9 +2,10 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>263 дня</title>
+    <title>До конца года</title>
 </head>
 <body>
+    <div id="output"></div>
     <script>
         function pluralDays(n) {
             if (n % 10 === 1 && n % 100 !== 11) return n + " день";
@@ -12,15 +13,63 @@
             return n + " дней";
         }
 
-        const today = new Date();
-        const start = new Date(today.getFullYear(), 0, 0);
-        const dayNum = Math.floor((today - start) / 86400000);
-        const daysLeft = 365 - dayNum;
-        
-        const result = pluralDays(daysLeft);
-        
-        document.title = result;
-        document.write(result);
+        function pluralHours(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " час";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " часа";
+            return n + " часов";
+        }
+
+        function pluralMinutes(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " минута";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " минуты";
+            return n + " минут";
+        }
+
+        function pluralSeconds(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " секунда";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " секунды";
+            return n + " секунд";
+        }
+
+        function pluralMillis(n) {
+            if (n % 10 === 1 && n % 100 !== 11) return n + " миллисекунда";
+            if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + " миллисекунды";
+            return n + " миллисекунд";
+        }
+
+        function pad(n, len) {
+            return String(n).padStart(len, "0");
+        }
+
+        function update() {
+            const now = new Date();
+            const endOfYear = new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0);
+            let diff = endOfYear - now;
+
+            if (diff < 0) diff = 0;
+
+            const days = Math.floor(diff / 86400000);
+            diff -= days * 86400000;
+            const hours = Math.floor(diff / 3600000);
+            diff -= hours * 3600000;
+            const minutes = Math.floor(diff / 60000);
+            diff -= minutes * 60000;
+            const seconds = Math.floor(diff / 1000);
+            const millis = diff - seconds * 1000;
+
+            const result =
+                pluralDays(days) + ", " +
+                pluralHours(hours) + ", " +
+                pluralMinutes(minutes) + ", " +
+                pluralSeconds(seconds) + ", " +
+                pluralMillis(millis);
+
+            document.title = result;
+            document.getElementById("output").textContent = result;
+        }
+
+        update();
+        setInterval(update, 1);
     </script>
 </body>
 </html>
